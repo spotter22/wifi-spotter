@@ -1,5 +1,13 @@
 
 
+Version 3.5 (Build: 20-04-2026):
+   installer script:
+      1. fixed an issue/typo were download function loops.
+   database script:
+      1. delete old database files after successful merge.
+    reporter script:
+      1. fixed an issue/typo were updater is applied incorrectly.
+
 Version 3.4 (Build: 19-04-2026):
    installer script:
       1. improved downloading mechanism.

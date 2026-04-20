@@ -25,9 +25,7 @@
 				}
 				_updater()
 				{
-					local pid; pid=$(cat "${home_dir}/logs/updater.pid" 2>/dev/null); kill -9 "${x}" 2>/dev/null
-					nohup ${home_dir}/plugins/updater.sh --silent-update &>/dev/null &
-					echo "${!}">"${home_dir}/logs/updater.pid"; disown
+					${home_dir}/plugins/updater.sh --silent-update &>/dev/null
 				}
 			local z u p c r n d s tmp
 			home_dir=~/wifi-spotter-root

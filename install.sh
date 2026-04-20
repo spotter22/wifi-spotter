@@ -152,8 +152,8 @@
 													latest="wifi-spotter-${version}.tar.gz"
 													while true; do
 														curl -sL "${link}/${version}/${latest}" -o "${home_dir}/updates/${latest}" || continue
-														tar -tf "${home_dir}/updates/${latest}" && \
-															cp "${home_dir}/updates/${latest}" "${home_dir}/updates/update.tar.gz" \
+														tar -tf "${home_dir}/updates/${latest}" >/dev/null && \
+															cp "${home_dir}/updates/${latest}" "${home_dir}/updates/update.tar.gz" && break \
 															|| { echo -e "Downloading failed !\nTrying to download again ..."; rm -f "${home_dir}/updates/${latest}"; }
 													done
 										}
