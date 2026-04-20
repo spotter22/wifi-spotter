@@ -7,6 +7,7 @@
 											echo "cleanning previous releases ..."
 											rm -f "${PREFIX}/bin/ws-uploader" "${PREFIX}/bin/ws-updater" "${PREFIX}/bin/sss" "${PREFIX}/bin/netspotter" "${PREFIX}/bin/ns-uploader" "${PREFIX}/bin/ws-merge" ~/.wsu.pid ~/.wsupdate.pid ~/.ns.pid ~/.wsg.pid ~/.wsr.pid ~/ns.tar.gz &>/dev/null
 											rm -rf ~/.ws ~/.ws.pid ~/.wsc.pid ~/.wsm.pid "${PREFIX}/etc/m.jq" "${PREFIX}/bin/wifi-spotter-config" "${PREFIX}/bin/wifi-spotter-updater" &>/dev/null
+											rm -f "${home_dir}/logs/.wsc.pid" "${home_dir}/logs/.wsm.pid"
 										}
 						_process_storage()
 										{
@@ -150,7 +151,10 @@
 													link="https://github.com/spotter22/wifi-spotter/releases/download"
 													latest="wifi-spotter-${version}.tar.gz"
 													while true; do
-														curl -sL "${link}/${version}/${latest}" -o "${home_dir}/updates/${latest}" &>/dev/null && cp "${home_dir}/updates/${latest}" "${home_dir}/updates/update.tar.gz" && return 0 || continue
+														curl -sL "${link}/${version}/${latest}" -o "${home_dir}/updates/${latest}" || continue
+														tar -tf "${home_dir}/updates/${latest}" && \
+															cp "${home_dir}/updates/${latest}" "${home_dir}/updates/update.tar.gz" \
+															|| { echo -e "Downloading failed !\nTrying to download again ..."; rm -f "${home_dir}/updates/${latest}"; }
 													done
 										}
 						_process_uinstall()

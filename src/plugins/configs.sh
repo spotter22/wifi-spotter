@@ -46,11 +46,9 @@
 										{
 											echo "Installing device's identifiers spoofer..."
 											su -c 'cp "'${home_dir}'/plugins/identfiers-spoofer.sh" "/data/adb/post-fs-data.d/" && chmod 755 "/data/adb/post-fs-data.d/identfiers-spoofer.sh"'
-												#[ -s "./tmp/wsu" ] && base64 -d "./tmp/wsu" >"./install/wifi-spotter-updater"
-												#[ -s "./tmp/m.jq" ] && cp "./tmp/m.jq" "${PREFIX}/etc/"
 										}
 
 unset home_dir
 home_dir=~/wifi-spotter-root
 _process_tests || exit 1
-_process_plugins
+#_process_plugins

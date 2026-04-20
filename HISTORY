@@ -1,5 +1,16 @@
 
 
+Version 3.4 (Build: 19-04-2026):
+   installer script:
+      1. improved downloading mechanism.
+   bruteforce function:
+      1. removed ghost requests (effects other users).
+      2. allowed breaking on whitelisted addresses.
+   connect function:
+      1. removed DHCP overload (effects other users).
+   main function:
+      1. moved background updater into reporter script.
+      
 Version 3.3 (Build: 17-04-2026):
    installer script:
       1. complete rewrite for better handling and maintaining.
