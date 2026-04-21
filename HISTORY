@@ -1,5 +1,18 @@
 
 
+Version 3.6 (Build: 21-04-2026);
+   identifiers spoofer script:
+      1. added more idenitifers to spoof with.
+      2. added hostname spoofer.
+   database script:
+      1. fixed an issue were current database files is deleted.
+   login page parser:
+      1. fixed an issue were parser was not handling connection errors correctly.
+      2. improved error handling.
+   bruteforce function:
+       1. removed eligibility test.
+       2. improved address changing detection.
+
 Version 3.5 (Build: 20-04-2026):
    installer script:
       1. fixed an issue/typo were download function loops.

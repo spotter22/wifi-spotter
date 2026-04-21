@@ -426,7 +426,7 @@
 														[ "${iwfreq[1]}" = "0" ] && { _echo "\tCannot read freq: ${iwfreq[1]}" 1; return 1; }
 
 												{ stdin="$x"; _process_serveraddress "google.com"; }
-														#[ "${host}" = "0" ] && { _echo "\tCannot read host: ${host}" 1; return 1; }
+														[ ${?} -ne 0 ] && { return 1; }
 
 											_echo "- Network Information:\n\tSSID: ${iwssid[1]}\n\tBSSID: ${iwbssid[1]}\n\tFrequency: ${iwfreq[1]}\n\tGID: ${gid:0:12}\n\tYour IP-Address: $devip\n\tYour MAC-Address: ${addr[2]}\n\tGateway: $gateway\n\tRoute: $route\n\tServer-Domain: $domain\n\tServer-Address: ${host}:${port}" 1
 												return 0
@@ -499,19 +499,20 @@
 																								return 0
 																						}
 																			local i u arr url header result page
-																			i=1; url="$1"; header=0; tmp="${home_dir}/logs/tmp"; err="${home_dir}/logs/err"
-																		until [ $i -ge 4 ]; do
+																			i=0; url="$1"; header=0; tmp="${home_dir}/logs/tmp"; err="${home_dir}/logs/err"
+																		until [ $i -eq 4 ]; do
+																					i=$((i+1))
 																					_echo "\t\t_fetch_with_curl --> performing attempt number: ${i}" 0
 																					curl -svLA "$ua" "${url}" >"$tmp" 2>&1
 																					echo -e "\nEOF" >>"$tmp" # fixes when last line has no \n
 																				while read -r u; do
 																						result=0
-																					if [[ "$u" =~ (timed out after |Could not resolve host: google.com|Failed to connect to |Could not resolve host: |Recv failure: Software caused connection abort) ]]; then
+																					if [[ "${u}" =~ (timed out after ) ]]; then
 																						_echo "\t\t_fetch_with_curl --> error response timed out: ${url}" 0
-																						echo -n>"$tmp"; return 1
-																					elif [[ "$u" =~ (Failed to connect to ) ]]; then
-																						_echo "\t\t_fetch_with_curl --> error cannot read server address: ${url}" 0
-																						result="error"; return 1
+																						result="timeout"; break
+																					elif [[ "${u}" =~ (Could not resolve host: |Failed to connect to |Recv failure: Software caused connection abort) ]]; then
+																						_echo "\t\t_fetch_with_curl --> error request failed: ${url}" 0
+																						result="failed"; break
 																					elif [ "${#u}" -le 100 ] && [[ "$u" =~ "window.location.href" ]]; then
 																						_echo "\t\t_fetch_with_curl --> warnning server requested js-redirect: ${u}" 0
 																						result="redirect"; u="${u/*=\"/}"; u="${u/\"*/}"; url="${host}:${port}/${u}"; domain="${domain}/${u}"; page="${u}"
@@ -549,10 +550,10 @@
 																						continue
 																					fi
 																			done< <(cat "$tmp" | tr -d '!*')
-																				if [ "$result" = "error" ]; then
-																					return 1
-																				elif [ "$result" = "redirect" ]; then
-																					i=$((i+1)); continue
+																				if [ "${result}" = "failed" ] || [ "${result}" = "timeout" ]; then
+																					continue
+																				elif [ "${result}" = "redirect" ]; then
+																					i=0; continue
 																				elif [ "$domain" = "www.google.com" ]; then
 																					_echo "\t\t_fetch_with_curl --> warnning this network is not captive portal: ${iwbssid[1]}" 0
 																					return 1
@@ -563,6 +564,13 @@
 																					_generate_gid "${tmp}" || _fetch_with_wget || return 1
 																					return 0
 																		done
+																				if [ "${result}" = "failed" ]; then
+																					_echo "\tError request failed: ${url}" 1
+																					return 1
+																				elif [ "${result}" = "timeout" ]; then
+																					_echo "\tError response timed out: ${url}" 1
+																					return 1
+																				fi
 																	}
 												local u x err
 												domain=0; host=0; port=0; gid=(0 0); status=0
@@ -570,12 +578,15 @@
 												_echo "_process_serveraddress --> prccessing with passed url: (${1})" 0
 												_fetch_with_curl "$1" || err="yes"
 
-											if [ "$domain" = "www.google.com" ]; then
+											if [ "${err}" = "yes" ]; then
+												if [ -s "${tmp}" ]; then
+													x="${home_dir}/logs/hotspot_page_$(date +%s).log"
+													_echo "\t\t_process_serveraddress --> unexpected error saving page as: ${x}" 0
+													cat "$tmp" >"${x}"
+												fi
+													return 1
+											elif [ "${domain}" = "www.google.com" ]; then
 												return 0
-											elif [ "$err" = "yes" ] && [ -s "${tmp}" ]; then
-												x="${home_dir}/logs/hotspot_page_$(date +%s).log"
-												_echo "\t\t_process_serveraddress --> unexpected error saving page as: ${x}" 0
-												cat "$tmp" >"${x}"; return 1
 											fi
 												return 0
 										}
@@ -1230,9 +1241,9 @@
 																}
 											_wificonnect_bruteforce()
 																{
-																	local c x y t n r cooldown
+																	local c x y t n r cooldown curr_addr
 																			mode="auto"
-																			_wificonnect_test || return 1
+																			_wificonnect_select || return 1
 																			{ _process_networkinfo || return 1; _json_initconfig || return 1; _json_networkinfo; _json_networkgid; }
 																			_wificonnect_getclients || return 1
 																			n=0; t=1; max_tries=3; cooldown=0
@@ -1245,8 +1256,17 @@
 																			_echo "\t\t_wificonnect_bruteforce --> error connection failed with address: [request_addr](client: ${request_addr})" 0
 																			[ ${cooldown} -ge 3 ] && { cooldown=0; _echo "\t${color_warn}Bottleneck was hit now cooling down..." 1; _echo "\t\t_wificonnect_bruteforce --> error bottleneck was hit: [tries](${t})" 0; sleep 120; }
 																			continue
-																		elif [ "${x}" != "${request_addr}" ]; then
-																			_echo "\t\t_wificonnect_bruteforce --> error requested and current address does not match: [current_addr](client: ${request_addr}) [request_addr](client: ${x})" 0
+																		fi
+																			curr_addr="$(su -c ''${prefix}'/iw dev '${iface}' info 2>&1 | '${prefix}'/grep -Po '\''addr \K.*'\''')"
+																		if [ -z "${curr_addr}" ]; then
+																			_echo "\t${color_error}Error current address is: null${color_reset}" 1
+																			_echo "\t\t_wificonnect_bruteforce --> error requested current address is null: [current_addr](${curr_addr}) [request_addr](${x})" 0
+																			play-audio "$home_dir/sfx/notification_error.m4a" &
+																			break
+																		elif [ "${x}" != "${curr_addr}" ]; then
+																			_echo "\t${color_error}Error request mismatch: ${curr_addr}${color_reset}\n\t${color_tip}Tip: Battery saver killed MACsposed !${color_reset}" 1
+																			_echo "\t\t_wificonnect_bruteforce --> error requested and current address does not match: [current_addr](${curr_addr}) [request_addr](${x})" 0
+																			play-audio "$home_dir/sfx/notification_error.m4a" &
 																			break
 																		else
 																			cooldown=0
@@ -1257,7 +1277,7 @@
 																		if [[ "${c}" =~ (Location: .*login|HTTP/1.1 302 Hotspot login required) ]]; then
 																			false
 																		elif [[ "${c}" =~ (Location: .*status|HTTP/1.1 200 OK) ]]; then
-																			n=$((n+1))
+																			n=$((n+1)); r="${color_success}"
 																			{ stdin="${home_dir}/logs/tmp"; _parse_html; }
 																			_json_addressgid "${request_addr}" "tclients"
 																			echo -n>"${home_dir}/logs/creds_${obf_date}.log"
@@ -1279,12 +1299,10 @@
 																		fi
 
 																		if [ ${t} -gt ${max_reqs} ]; then
-																			r="${color_error}"
 																			play-audio "$home_dir/sfx/notification_error.m4a" &
 																			break
 																		fi
 																	done
-																			r="${color_warn}"
 																			_echo "\t${r}Finished with ${n} success${color_reset}" 1
 																			return 1
 																}

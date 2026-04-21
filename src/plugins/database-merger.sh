@@ -63,7 +63,7 @@ EOF
 		_validate_db "${f}" || { echo "Warning: skipping: ${f}"; continue; }
 		echo "merging: ${f}" && \
 			jq -f "${home_dir}/plugins/database-merger.jq" "${output}" "${f}" >"${tmp}" && \
-			mv "${tmp}" "${output}" && rm -f "${f}" || { echo "Error: unexpected error while merging: ${f}"; continue; }
+			mv "${tmp}" "${output}" && { [ "${mode}" = "restore" ] && rm -f "${f}"; } || { echo "Error: unexpected error while merging: ${f}"; continue; }
 	done
 
 	if [ ${i} -eq 0 ]; then

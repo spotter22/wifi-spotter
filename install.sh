@@ -7,7 +7,7 @@
 											echo "cleanning previous releases ..."
 											rm -f "${PREFIX}/bin/ws-uploader" "${PREFIX}/bin/ws-updater" "${PREFIX}/bin/sss" "${PREFIX}/bin/netspotter" "${PREFIX}/bin/ns-uploader" "${PREFIX}/bin/ws-merge" ~/.wsu.pid ~/.wsupdate.pid ~/.ns.pid ~/.wsg.pid ~/.wsr.pid ~/ns.tar.gz &>/dev/null
 											rm -rf ~/.ws ~/.ws.pid ~/.wsc.pid ~/.wsm.pid "${PREFIX}/etc/m.jq" "${PREFIX}/bin/wifi-spotter-config" "${PREFIX}/bin/wifi-spotter-updater" &>/dev/null
-											rm -f "${home_dir}/logs/.wsc.pid" "${home_dir}/logs/.wsm.pid"
+											rm -f "${home_dir}/logs/.wsc.pid" "${home_dir}/logs/.wsm.pid" "${home_dir}/logs/updater.pid"
 										}
 						_process_storage()
 										{
