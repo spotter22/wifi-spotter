@@ -1244,6 +1244,12 @@
 																	local c x y t n r cooldown curr_addr
 																			mode="auto"
 																			_wificonnect_select || return 1
+																		if [ -z "${ws_disconnect_alt}" ] || [ -z "${ws_macchanger_alt}" ]; then
+																			sudo ${home_dir}/plugins/configs.sh
+																		fi
+																			_macchanger_set "random"
+																			_wificonnect_status "is_disconnected"
+																			_wificonnect_connect "${ssid}" "${sec}" "${bssid}" || return 1
 																			{ _process_networkinfo || return 1; _json_initconfig || return 1; _json_networkinfo; _json_networkgid; }
 																			_wificonnect_getclients || return 1
 																			n=0; t=1; max_tries=3; cooldown=0

@@ -53,6 +53,13 @@ EOF
 	if [ "${mode}" = "restore" ]; then
 		pd[0]="/sdcard/Android/media/com.wifi.spotter/"
 		pd[1]="/data/data/com.termux/files/home/com.wifi.spotter/"
+		if [ -s "/sdcard/Android/media/com.network.spotter/nspotterdb.json" ]; then
+		echo -n>"${home_dir}/logs/nspotter_restored.log"
+		pd[2]="/sdcard/Android/media/com.network.spotter/"
+		sed -i 's|"ns":|"ws":|' "/sdcard/Android/media/com.network.spotter/nspotterdb.json" && \
+		mv "/sdcard/Android/media/com.network.spotter/nspotterdb.json" "/sdcard/Android/media/com.network.spotter/wsdb.json" \
+		|| echo -n>"${home_dir}/logs/nspotter_failed.log"
+		fi
 		pf="wsdb*"
 	elif [ "${mode}" = "merge" ]; then
 		pd="${home_dir}/uploads/${z}/"
@@ -63,7 +70,8 @@ EOF
 		_validate_db "${f}" || { echo "Warning: skipping: ${f}"; continue; }
 		echo "merging: ${f}" && \
 			jq -f "${home_dir}/plugins/database-merger.jq" "${output}" "${f}" >"${tmp}" && \
-			mv "${tmp}" "${output}" && { [ "${mode}" = "restore" ] && rm -f "${f}"; } || { echo "Error: unexpected error while merging: ${f}"; continue; }
+			mv "${tmp}" "${output}" || { echo "Error: unexpected error while merging: ${f}"; continue; }
+			[ "${mode}" = "restore" ] && rm -f "${f}"
 	done
 
 	if [ ${i} -eq 0 ]; then

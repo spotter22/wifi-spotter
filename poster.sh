@@ -72,6 +72,14 @@ _commit(){
 		return 1
 	fi
 
+	if [[ "$(git status 2>&1)" =~ "Untracked files:" ]]; then
+		git status
+		read -p "Commit includes new files continue (y/n)?:" option
+	if ! [[ "${option}" =~ (Y|y) ]]; then
+		return 1
+	fi
+	fi
+
 	if [ "v$(git log -n1 --oneline | awk '{print $3}')" != "v${version}" ]; then	
 		echo "v${version}" >"./LATEST"
 

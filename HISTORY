@@ -1,5 +1,23 @@
 
 
+Version 3.7 (Build: 26-04-2026):
+   installer script:
+      1. fixed an issue were deps installer were incorrectly running.
+      2. improved deps installer.
+      3. improved updater function.
+   database script:
+       1. improved error handling.
+    bruteforce function:
+       1. added an option to apply configurator when needed.
+       2. fixed some typo/issues.
+    reporter script:
+       1. improved handling errors.
+       2. some other improvements.
+    poster script:
+       1. added confirm dialog for adding new files.
+    new script connect module:
+       1. not ready yet, but development will continue.
+
 Version 3.6 (Build: 21-04-2026);
    identifiers spoofer script:
       1. added more idenitifers to spoof with.
