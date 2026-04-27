@@ -1,38 +1,6 @@
 #!/bin/bash
 
 
-_fetch_with_wget()
-{
-local u x y
-_echo "\t\t_fetch_with_wget --> warnning now fetching dynamic page: ${url}" 0
-u="$(wget -nv -rU "${ua}" "${url}" -R "jpg,png,ico,mp4,svg,gif,css,eot,ttf,woff" -O "$tmp" 2>&1 | tr '\n' '#')"
-_echo "\t\t_fetch_with_wget --> result of dynamic page fetching: (${u})" 0
-if [ -z "$u" ]; then
-return 1
-elif [[ "$u" =~ (unable to resolve) ]]; then
-return 1
-fi
-
-u="$(grep -ao '"[^"]\+"' "$tmp" | grep -F ".js" | sed "s/^\"//g; s/\"/\,/g" | sort | uniq | tr "\n" " ")"
-if [ -z "${u}" ]; then
-_echo "\t\t_fetch_with_wget --> error parsed dynamic page is empty: [js](${u})" 0
-return 1
-fi
-u="${u// /}"; x="${host}:${port}/{${u:0:-1}}"
-u="$(curl -sA "${ua}" "${x}" >"$tmp" 2>&1 | tr '\n' '#')"
-_echo "\t\t_fetch_with_wget --> result of dynamic page requesting: (${u})" 0
-if [ ! -s "$tmp" ]; then
-_echo "\t\t_fetch_with_wget --> error return value is empty" 0
-return 1
-elif [[ "$u" =~ (unable to resolve) ]]; then
-_echo "\t\t_fetch_with_wget --> error lost connection" 0
-return 1
-fi
-_generate_gid "$tmp" || return 1
-return 0
-}
-
-
 _302parser_send_request(){
 	local url output useragent
 	[ -n "${1}" ] && url="${1}" || url="http://google.com"
@@ -62,6 +30,20 @@ _302parser_send_request(){
 	done< <(cat "${output}")
 
 	return 0
+}
+
+
+_302parser_crawl_request(){
+	local url output useragent x
+	[ -n "${1}" ] && url="${1}" || url="http://google.com"
+	[ -n "${2}" ] && output="${2}" || output="./302parser_request.log"
+	[ -n "${3}" ] && useragent="${3}" || useragent="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/60.0.3112.32 Safari/537.36"
+
+	echo "_302parser_crawl_request: crawling request for: ${url}"
+	while read -r x; do
+		([ -z "${x}" ] || [[ "${x}" =~ (WARNING: combining|^will be placed) ]]) && continue
+		#echo "${x}"
+	done< <(wget -nv -rU "${useragent}" "${url}" -R "jpg,png,ico,mp4,svg,gif,css,eot,ttf,woff" -O "${output}" 2>&1)
 }
 
 
@@ -110,7 +92,13 @@ _302parser_parse_scripts(){
 		return 1
 	fi
 
-	x="${x// /}"; ret="{${index},${x:0:-1}}"
+		x="${x// /}"
+	if [ -n "${index}" ]; then
+		ret="{${index},${x:0:-1}}"
+	else
+		ret="{${x:0:-1}}"
+	fi
+
 	echo "_302parser_parse_scripts: sorting finished (ret: ${ret})."
 	return 0
 }
@@ -164,21 +152,27 @@ _302parser_parse_auto(){
 	_302parser_send_request "${request}" "${output}" || return 1
 	_302parser_parse_login "${output}"
 
-	if [ ${?} -eq 0 ]; then
+	if [ "${domain}" = "www.google.com" ]; then
+		return 0
+	elif [ ${?} -eq 0 ]; then
 		:
 	elif [ ${?} -eq 1 ]; then
 		domain="${domain}/${ret}"
 		_302parser_parse_scripts "${output}" "${ret}"
 		_302parser_send_request "${host}:${port}/${ret}" "${output}" || return 1
+		#_302parser_crawl_request "${host}:${port}/${ret}" "${output}" || return 1
 	elif [ ${?} -eq 2 ]; then
 		domain="${ret}"
 		_302parser_parse_scripts "${output}" "${ret##*/}"
 		_302parser_send_request "${host}:${port}/${ret}" "${output}" || return 1
+		#_302parser_crawl_request "${host}:${port}/${ret}" "${output}" || return 1
 	else
 		echo "_302parser_parse_auto: an error occurred while trying to parse (err: ${?}). "
 		return 1
 	fi
 
+	_302parser_parse_scripts "${output}"
+	_302parser_send_request "${host}:${port}/${ret}" "${output}" || return 1
 	_302parser_parse_status "${output}"
 	_302parser_parse_gid "${output}" || return 1
 

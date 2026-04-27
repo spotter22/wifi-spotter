@@ -467,7 +467,7 @@
 											fi
 
 											source "${home_dir}/plugins/302-parser.sh"
-											_302parser_parse_auto "http://google.com" "${home_dir}/logs/tmp" >>"${log_file}" || return 1
+											_302parser_parse_auto "http://google.com" "${home_dir}/logs/tmp" &>>"${log_file}" || return 1
 											return 0
 										}
 
