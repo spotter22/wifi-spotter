@@ -1,5 +1,11 @@
 
 
+Version 4.0-b2 (Build: 27-04-2026):
+  installer script;
+      1. improved silent updater function.
+  reporter script:
+      1. some improvements.
+
 Version 4.0-b1 (Build: 27-04-2026):
   302-parser script:
       1. some improvements.

@@ -147,6 +147,7 @@
 													echo "Warning: current version matches latest version..."
 													[ "${1}" = "--silent" ] && { return 1; } || { break; }
 												else
+													echo "upgrading from ${version} into ${latest}"
 													version="${latest}"
 													break
 												fi

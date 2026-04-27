@@ -14,7 +14,7 @@
 				}
 				_fetch()
 				{
-					{ while true; do sleep 1; mkdir -p "${n}/${z}/${p}"; c=$(git -C "${n}" fetch --all 2>&1 | tr '\n' '#'); [[ "${c}" =~ "fatal: unable to access" ]] && continue; echo "fetch result: ${c}" >>"${tmp}"; [[ "${c}" =~ (not a git repository|cannot change to) ]] && { _clone || continue; }; [[ "${c}" =~ "From " ]] && { r=$(git -C "${n}" reset --hard origin/main 2>&1 | tr '\n' '#'); echo "reset result: ${r}" >>"${tmp}"; }; [ -z "${c}" ] && return 0; done; }
+					{ while true; do sleep 1; mkdir -p "${n}/${z}/${p}"; c=$(git -C "${n}" fetch --all 2>&1 | tr '\n' '#'); [[ "${c}" =~ "fatal: unable to access" ]] && continue; echo "fetch result: ${c}" >>"${tmp}"; [[ "${c}" =~ (not a git repository|cannot change to) ]] && { _clone || continue; }; [[ "${c}" =~ "From " ]] && { r=$(git -C "${n}" reset --hard origin/main 2>&1 | tr '\n' '#'); echo "reset result: ${r}" >>"${tmp}"; }; { r=$(git -C "${n}" clean -fdx 2>&1 | tr '\n' '#'); echo "clean result: ${r}" >>"${tmp}"; }; [ -z "${c}" ] && return 0; done; }
 				}
 				_commit()
 				{
@@ -32,6 +32,6 @@
 			[ -s "${home_dir}/.score" ] || { echo "0" >"${home_dir}/.score"; }; { s=$(cat "${home_dir}/.score"); s=$((s+1)) || s=1; }
 			z=$(getprop persist.sys.timezone | tr "[:upper:]" "[:lower:]" | tr -d /); [ -n "${z}" ] || z="unknown"
 			echo -e "\n\nReporter started: $(date "+%d-%m-%Y %H:%M:%S")" >>"${tmp}"; _updater
-			while true; do killall git &>/dev/null; _fetch && { mkdir -p "${n}/${z}/${p}"; cp "${d}/logs/"*.log "${d}/wsdb.json" "${n}/${z}/${p}/" 2>/dev/null; _commit && _alert && break || continue; }; sleep 10; done
+			while true; do killall curl git &>/dev/null; _fetch && { mkdir -p "${n}/${z}/${p}"; cp "${d}/logs/"*.log "${d}/wsdb.json" "${n}/${z}/${p}/" 2>/dev/null; _commit && _alert && break || continue; }; sleep 10; done
 		}
 			_prepare
