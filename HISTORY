@@ -1,8 +1,13 @@
 
 
+Version 4.0-b1 (Build: 27-04-2026):
+  302-parser script:
+      1. some improvements.
+
 Version 4.0 (Build: 27-04-2026):
   302-parser script:
       1. fixed some issues.
+
 Version 3.9 (Build: 27-04-2026):
    main function:
       1. added useragent variable.

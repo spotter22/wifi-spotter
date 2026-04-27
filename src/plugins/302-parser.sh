@@ -145,24 +145,22 @@ _302parser_parse_gid(){
 
 
 _302parser_parse_auto(){
-	local request output index
+	local request output more
 	[ -n "${1}" ] && request="${1}" || request="http://google.com"
 	[ -n "${2}" ] && output="${2}" || output="./302parser_auto.log"
 
 	_302parser_send_request "${request}" "${output}" || return 1
 	_302parser_parse_login "${output}"
 
-	if [ "${domain}" = "www.google.com" ]; then
-		return 0
-	elif [ ${?} -eq 0 ]; then
+	if [ ${?} -eq 0 ]; then
 		:
 	elif [ ${?} -eq 1 ]; then
-		domain="${domain}/${ret}"
+		domain="${domain}/${ret}"; more=1
 		_302parser_parse_scripts "${output}" "${ret}"
 		_302parser_send_request "${host}:${port}/${ret}" "${output}" || return 1
 		#_302parser_crawl_request "${host}:${port}/${ret}" "${output}" || return 1
 	elif [ ${?} -eq 2 ]; then
-		domain="${ret}"
+		domain="${ret}"; more=1
 		_302parser_parse_scripts "${output}" "${ret##*/}"
 		_302parser_send_request "${host}:${port}/${ret}" "${output}" || return 1
 		#_302parser_crawl_request "${host}:${port}/${ret}" "${output}" || return 1
@@ -171,8 +169,11 @@ _302parser_parse_auto(){
 		return 1
 	fi
 
-	_302parser_parse_scripts "${output}"
-	_302parser_send_request "${host}:${port}/${ret}" "${output}" || return 1
+	if [ "${more}" == "1" ]; then
+		_302parser_parse_scripts "${output}"
+		_302parser_send_request "${host}:${port}/${ret}" "${output}" || return 1
+	fi
+
 	_302parser_parse_status "${output}"
 	_302parser_parse_gid "${output}" || return 1
 
