@@ -130,6 +130,13 @@
 										{
 													local link latest
 													link="https://raw.githubusercontent.com/spotter22/wifi-spotter/refs/heads/main/LATEST"
+
+												if [ -s "${home_dir}/updates/update.tar.gz" ]; then
+													echo "testing tarball..."
+													tar -tf "${home_dir}/updates/update.tar.gz" &>/dev/null && return 0 \
+														|| rm -f "${home_dir}/updates/update.tar.gz"
+												fi
+
 													echo "getting latest version info..."
 											while true; do
 													latest=$(curl -sL "${link}" 2>/dev/null)
@@ -144,12 +151,6 @@
 													break
 												fi
 											done
-
-												if [ -s "${home_dir}/updates/update.tar.gz" ]; then
-													echo "testing tarball..."
-													tar -tf "${home_dir}/updates/update.tar.gz" &>/dev/null && return 0 \
-														|| rm -f "${home_dir}/updates/update.tar.gz"
-												fi
 
 													echo "downloading latest wifi-spotter package..."
 													mkdir -p "${home_dir}/updates/tmp"

@@ -297,6 +297,7 @@
 												obf_date="${full_date[1]}"
 												commit="unknown"
 												version="unknown"
+												useragent="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/60.0.3112.32 Safari/537.36"
 
 												args="${@}"
 											while getopts i:c:s:m:p:h:gv option; do
@@ -425,8 +426,8 @@
 												{ stdin="cat $x"; _parse_iw; }
 														[ "${iwfreq[1]}" = "0" ] && { _echo "\tCannot read freq: ${iwfreq[1]}" 1; return 1; }
 
-												{ stdin="$x"; _process_serveraddress "google.com"; }
-														[ ${?} -ne 0 ] && { return 1; }
+												{ stdin="$x"; _process_serveraddress; }
+														#[ ${?} -ne 0 ] && { return 1; }
 
 											_echo "- Network Information:\n\tSSID: ${iwssid[1]}\n\tBSSID: ${iwbssid[1]}\n\tFrequency: ${iwfreq[1]}\n\tGID: ${gid:0:12}\n\tYour IP-Address: $devip\n\tYour MAC-Address: ${addr[2]}\n\tGateway: $gateway\n\tRoute: $route\n\tServer-Domain: $domain\n\tServer-Address: ${host}:${port}" 1
 												return 0
@@ -1155,7 +1156,7 @@
 																			break
 																		else
 																			cooldown=0
-																			curl -vsLA "${ua}" "${status}" >"${home_dir}/logs/tmp" 2>"${home_dir}/logs/err"
+																			curl -vsLA "${useragent}" "${host}:${port}/${status}" >"${home_dir}/logs/tmp" 2>"${home_dir}/logs/err"
 																			c=$(cat "${home_dir}/logs/err" | tr '\t\r\n*' '#')
 																		fi
 

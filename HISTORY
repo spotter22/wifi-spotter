@@ -1,5 +1,15 @@
 
 
+Version 3.9 (Build: 27-04-2026):
+   main function:
+      1. added useragent variable.
+   network info parser function:
+      1. fixed an issue were script exits without printing info.
+   bruteforce function:
+      1. fixed an issue/typo were request page variable has become incorrect.
+   installer script:
+      1. improved silent updater.
+
 Version 3.8 (Build: 27-04-2026):
    installer script:
       1. fixed an issue/typo were logs always get removed when checking for updates.
