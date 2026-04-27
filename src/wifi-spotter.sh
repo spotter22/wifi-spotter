@@ -457,138 +457,17 @@
 										}
 							_process_serveraddress()
 										{
-														_generate_gid()
-																	{
-																		local u
-																		u=0; gid=0
-																		gid[1]="$(cat "$1" | tr -d ' -)(' | grep -oE '[0-9]{7}|[0-9]{8}|[0-9]{9}' 2>/dev/null | tr '\n' '.')"
-																		[ -z "${gid[1]}" ] && { _echo "\t\t_generate_gid --> error could not generate gid" 0; return 1; }
-																		_echo "\t\t_generate_gid --> returned result: ${gid[1]}" 0	
-																		u=$(echo -n "${gid[1]}" | md5sum); gid[0]="${u/  -/}"; return 0
-																	}
-														_fetch_with_curl()
-																	{
-																			_fetch_with_wget()
-																						{
-																								local u x y
-																								_echo "\t\t_fetch_with_wget --> warnning now fetching dynamic page: ${url}" 0
-																								u="$(wget -nv -rU "${ua}" "${url}" -R "jpg,png,ico,mp4,svg,gif,css,eot,ttf,woff" -O "$tmp" 2>&1 | tr '\n' '#')"
-																								_echo "\t\t_fetch_with_wget --> result of dynamic page fetching: (${u})" 0
-																							if [ -z "$u" ]; then
-																								return 1
-																							elif [[ "$u" =~ (unable to resolve) ]]; then
-																								return 1
-																							fi
-
-																								u="$(grep -ao '"[^"]\+"' "$tmp" | grep -F ".js" | sed "s/^\"//g; s/\"/\,/g" | sort | uniq | tr "\n" " ")"
-																							if [ -z "${u}" ]; then
-																								_echo "\t\t_fetch_with_wget --> error parsed dynamic page is empty: [js](${u})" 0
-																								return 1
-																							fi
-																								u="${u// /}"; x="${host}:${port}/{${u:0:-1}}"
-																								u="$(curl -sA "${ua}" "${x}" >"$tmp" 2>&1 | tr '\n' '#')"
-																								_echo "\t\t_fetch_with_wget --> result of dynamic page requesting: (${u})" 0
-																							if [ ! -s "$tmp" ]; then
-																								_echo "\t\t_fetch_with_wget --> error return value is empty" 0
-																								return 1
-																							elif [[ "$u" =~ (unable to resolve) ]]; then
-																								_echo "\t\t_fetch_with_wget --> error lost connection" 0
-																								return 1
-																							fi
-																								_generate_gid "$tmp" || return 1
-																								return 0
-																						}
-																			local i u arr url header result page
-																			i=0; url="$1"; header=0; tmp="${home_dir}/logs/tmp"; err="${home_dir}/logs/err"
-																		until [ $i -eq 4 ]; do
-																					i=$((i+1))
-																					_echo "\t\t_fetch_with_curl --> performing attempt number: ${i}" 0
-																					curl -svLA "$ua" "${url}" >"$tmp" 2>&1
-																					echo -e "\nEOF" >>"$tmp" # fixes when last line has no \n
-																				while read -r u; do
-																						result=0
-																					if [[ "${u}" =~ (timed out after ) ]]; then
-																						_echo "\t\t_fetch_with_curl --> error response timed out: ${url}" 0
-																						result="timeout"; break
-																					elif [[ "${u}" =~ (Could not resolve host: |Failed to connect to |Recv failure: Software caused connection abort) ]]; then
-																						_echo "\t\t_fetch_with_curl --> error request failed: ${url}" 0
-																						result="failed"; break
-																					elif [ "${#u}" -le 100 ] && [[ "$u" =~ "window.location.href" ]]; then
-																						_echo "\t\t_fetch_with_curl --> warnning server requested js-redirect: ${u}" 0
-																						result="redirect"; u="${u/*=\"/}"; u="${u/\"*/}"; url="${host}:${port}/${u}"; domain="${domain}/${u}"; page="${u}"
-																						_echo "\t\t_fetch_with_curl --> warnning now following redirect: ${url}" 0; break
-																					elif [[ "$u" =~ (doctype html|<html) ]] && [ "${domain}" != "google.com" ]; then
-																						header=$((header+1))
-																						_echo "\t\t_fetch_with_curl --> current line is html-header: ${u}" 0; break
-																					elif [[ "$u" =~ (md5\.js) ]]; then
-																						header=$((header+1))
-																						_echo "\t\t_fetch_with_curl --> current line is mikrotik-md5: ${u}" 0; break
-																					elif [[ "$u" =~ (Established connection to ) ]]; then
-																						if [ -z "${page}" ]; then
-																							arr=($u); domain="${arr[3]}"; host="${arr[4]/(/}"; port="${arr[6]/)/}"
-																							status="${host}:${port}"
-																						elif [ -n "${page}" ]; then
-																								u=$(grep -ao '"[^"]\+"' "${tmp}" | grep -F ".js" | tr -d '"' | sort | uniq | tr "\n" " " | tr ' ' ',')
-																								_echo "\t\t_fetch_with_curl --> parsed status files result: [u](${u})" 0
-																							if [ -z "${u}" ]; then
-																								status="${host}:${port}"
-																							else
-																								u="${u// /}"; u="${host}:${port}/{${u:0:-1}}"
-																								_echo "\t\t_fetch_with_curl --> request status result: [u](${u})" 0
-																								curl -svLA "${ua}" "${u}" >"${err}" 2>&1
-																								u=$(grep -ao '[^"]\+"' "${err}" | grep -F '/status?' | tr -d '"')
-																								[ -n "${u}" ] && status="${host}:${port}${u}" || status="${host}:${port}"
-																								_echo "\t\t_fetch_with_curl --> status returned result: [status](${status})" 0
-																							fi
-																						fi
-																						_echo "\tServer domain: ${domain}\n\tServer address: ${host}:${port}" 2
-																						_echo "\t\t_fetch_with_curl --> returned result: [domain](${domain}) [host](${host}) [port](${port})" 0
-																					elif [[ "${u}" =~ '<LoginURL>' ]]; then
-																						result="redirect"; domain=0; host=0; port=0
-																						url=$(echo "${u}" | sed 's|<LoginURL>||; s|</LoginURL>||' | tr -d '\r '); break
-																					else
-																						continue
-																					fi
-																			done< <(cat "$tmp" | tr -d '!*')
-																				if [ "${result}" = "failed" ] || [ "${result}" = "timeout" ]; then
-																					continue
-																				elif [ "${result}" = "redirect" ]; then
-																					i=0; continue
-																				elif [ "$domain" = "www.google.com" ]; then
-																					_echo "\t\t_fetch_with_curl --> warnning this network is not captive portal: ${iwbssid[1]}" 0
-																					return 1
-																				elif [ $header -eq 0 ]; then
-																					_echo "\t\t_fetch_with_curl --> unexpected error header is 0" 0
-																					return 1
-																				fi
-																					_generate_gid "${tmp}" || _fetch_with_wget || return 1
-																					return 0
-																		done
-																				if [ "${result}" = "failed" ]; then
-																					_echo "\tError request failed: ${url}" 1
-																					return 1
-																				elif [ "${result}" = "timeout" ]; then
-																					_echo "\tError response timed out: ${url}" 1
-																					return 1
-																				fi
-																	}
-												local u x err
-												domain=0; host=0; port=0; gid=(0 0); status=0
-												ua="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/60.0.3112.32 Safari/537.36"
-												_echo "_process_serveraddress --> prccessing with passed url: (${1})" 0
-												_fetch_with_curl "$1" || err="yes"
-
-											if [ "${err}" = "yes" ]; then
-												if [ -s "${tmp}" ]; then
-													x="${home_dir}/logs/hotspot_page_$(date +%s).log"
-													_echo "\t\t_process_serveraddress --> unexpected error saving page as: ${x}" 0
-													cat "$tmp" >"${x}"
-												fi
-													return 1
-											elif [ "${domain}" = "www.google.com" ]; then
-												return 0
+											if [ ! -s "${home_dir}/plugins/302-parser.sh" ]; then
+												_echo "\tError can not find: ${home_dir}/plugins/302-parser.sh" 1
+												return 1
+											elif [ ! -x "${home_dir}/plugins/302-parser.sh" ]; then
+												_echo "\tError can not execute: ${home_dir}/plugins/302-parser.sh" 1
+												return 1
 											fi
-												return 0
+
+											source "${home_dir}/plugins/302-parser.sh"
+											_302parser_parse_auto "http://google.com" "${home_dir}/logs/tmp" >>"${log_file}" || return 1
+											return 0
 										}
 
 

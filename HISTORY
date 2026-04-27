@@ -1,5 +1,11 @@
 
 
+Version 3.8 (Build: 27-04-2026):
+   installer script:
+      1. fixed an issue/typo were logs always get removed when checking for updates.
+   hotspot page parser:
+      1. complete rewrite for improving and better handling errors.
+
 Version 3.7 (Build: 26-04-2026):
    installer script:
       1. fixed an issue were deps installer were incorrectly running.

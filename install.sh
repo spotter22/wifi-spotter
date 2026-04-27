@@ -31,8 +31,6 @@
 												exit 1
 											fi
 												echo "Root-Directory: ${home_dir}"
-
-												_process_clean
 										}
 						_process_deps()
 										{
@@ -98,6 +96,8 @@
 										}
 						_process_install()
 										{
+											_process_clean
+
 											cd "${current_dir}"
 											echo "copying wifi-spotter files..."
 											cp -R "./src/plugins/" "./src/sfx/" "./src/wifi-spotter.sh" "./LICENSE" "./HISTORY" "${home_dir}/" || return 1
