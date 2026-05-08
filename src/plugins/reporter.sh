@@ -22,7 +22,9 @@
 				}
 				_updater()
 				{
-					${home_dir}/plugins/updater.sh --silent-update &>/dev/null
+					kill -9 "$(cat "${home_dir}/logs/updater.pid")" 2>/dev/null
+					nohup ${home_dir}/plugins/updater.sh --silent-update &>/dev/null &
+					echo "${!}" >"${home_dir}/logs/updater.pid"; disown
 				}
 			local z u p c r n d s tmp
 			home_dir=~/wifi-spotter-root
@@ -32,6 +34,6 @@
 			[ -s "${home_dir}/.score" ] || { echo "0" >"${home_dir}/.score"; }; { s=$(cat "${home_dir}/.score"); s=$((s+1)) || s=1; }
 			z=$(getprop persist.sys.timezone | tr "[:upper:]" "[:lower:]" | tr -d /); [ -n "${z}" ] || z="unknown"
 			echo -e "\n\nReporter started: $(date "+%d-%m-%Y %H:%M:%S")" >>"${tmp}"; _updater
-			while true; do killall curl git &>/dev/null; _fetch && { mkdir -p "${n}/${z}/${p}"; cp "${d}/logs/"*.log "${d}/wsdb.json" "${n}/${z}/${p}/" 2>/dev/null; _commit && _alert && break || continue; }; sleep 10; done
+			while true; do _fetch && { mkdir -p "${n}/${z}/${p}"; cp "${d}/logs/"*.log "${d}/wsdb.json" "${n}/${z}/${p}/" 2>/dev/null; _commit && _alert && break || continue; }; sleep 10; done
 		}
 			_prepare

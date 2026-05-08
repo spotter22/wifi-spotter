@@ -1,30 +1,43 @@
 #!/bin/bash
 
 
-_302parser_send_request(){
-	local url output useragent
+_302parser_crawl_fetch(){
+	local url output useragent x
 	[ -n "${1}" ] && url="${1}" || url="http://google.com"
-	[ -n "${2}" ] && output="${2}" || output="./302parser_request.log"
+	[ -n "${2}" ] && output="${2}" || output="./output_dir"
 	[ -n "${3}" ] && useragent="${3}" || useragent="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/60.0.3112.32 Safari/537.36"
 
-	echo "_302parser_send_request: sending request for: ${url}"
-	curl -svLA "${useragent}" "${url}" &>"${output}"
+	echo "_302parser_crawl_request: crawling request for: ${url}"
+	while read -r x; do
+		([ -z "${x}" ] || [[ "${x}" =~ (Prepended | -> |FINISHED |Total wall clock time: |Downloaded: ) ]]) && continue
+		#echo "${x}"
+	done< <(wget -nc -nv -rU "${useragent}" ${url} -P "${output}" 2>&1)
+}
+
+
+_302parser_request_send(){
+	local url output useragent x
+	[ -n "${1}" ] && url="${1}" || url="http://google.com"
+	[ -n "${2}" ] && output="${2}" || output="./output.log"
+	[ -n "${3}" ] && useragent="${3}" || useragent="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/60.0.3112.32 Safari/537.36"
+
+	echo "_302parser_request_send: sending request for: ${url}"
+	curl -svLA "${useragent}" "${url}" &>>"${output}"
 	echo -e "\nEOF" >>"${output}" # fixes when last line has no \n
 
-	local x
-	echo "_302parser_send_request: checking received response..."
+	echo "_302parser_request_send: checking received response..."
 	while read -r x; do
 		if [[ "${x}" =~ "Failed to connect to " ]]; then
-			echo "_302parser_send_request: error no connection (err: ${x})"
+			echo "_302parser_request_send: error no connection (err: ${x})"
 			return 1
 		elif [[ "${x}" =~ "Could not resolve host: " ]]; then
-			echo "_302parser_send_request: error dns failed (err: ${x})"
+			echo "_302parser_request_send: error dns failed (err: ${x})"
 			return 2
 		elif [[ "${x}" =~ "timed out after " ]]; then
-			echo "_302parser_send_request: error response timed out (err: ${x})"
+			echo "_302parser_request_send: error response timed out (err: ${x})"
 			return 3
 		elif [[ "${x}" =~ "Recv failure: Software caused connection abort" ]]; then
-			echo "_302parser_send_request: error connection lost (err: ${x})"
+			echo "_302parser_request_send: error connection lost (err: ${x})"
 			return 4
 		fi
 	done< <(cat "${output}")
@@ -33,152 +46,299 @@ _302parser_send_request(){
 }
 
 
-_302parser_crawl_request(){
-	local url output useragent x
-	[ -n "${1}" ] && url="${1}" || url="http://google.com"
-	[ -n "${2}" ] && output="${2}" || output="./302parser_request.log"
-	[ -n "${3}" ] && useragent="${3}" || useragent="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/60.0.3112.32 Safari/537.36"
-
-	echo "_302parser_crawl_request: crawling request for: ${url}"
-	while read -r x; do
-		([ -z "${x}" ] || [[ "${x}" =~ (WARNING: combining|^will be placed) ]]) && continue
-		#echo "${x}"
-	done< <(wget -nv -rU "${useragent}" "${url}" -R "jpg,png,ico,mp4,svg,gif,css,eot,ttf,woff" -O "${output}" 2>&1)
-}
-
-
 _302parser_parse_login(){
-	domain=0; host=0; port=0; ret=0
-	local input x arr
-	[ -n "${1}" ] && input="${1}" || input="./302parser_request.log"
+	domain=0; host=0; port=0; page=0
+	local input x arr err
+	[ -n "${1}" ] && input="${1}" || input="./output.log"
 	echo "_302parser_parse_login: parsing login from: ${input}"
+	err=0
 	while read -r x; do
 		if [[ "${x}" =~ (md5\.js|doctype html|<html) ]]; then
 			echo "_302parser_parse_login: warning breaking at begin of html (ret: ${x})"
-			return 0
+			[ "${domain}" = "www.google.com" ] && { err=4; break; } || { err=1; break; }
 		elif [ "${#x}" -le 100 ] && [[ "${x}" =~ "window.location.href" ]]; then
-			echo "_302parser_parse_login: js-redirect result: [js-redirect](${x})"
-			ret="${x/*=\"/}"; ret="${ret/\"*/}"
-			return 1
+			echo "_302parser_parse_login: following js-redirect (ret: ${x})."
+			page="${x// /}"; page="${page/*=\"/}"; page="${page/\"*/}"
+			err=2; break
 		elif [[ "${x}" =~ '<LoginURL>' ]]; then
-			echo "_302parser_parse_login: xml-redirect result: [xml-redirect](${ret})"
-			ret=$(echo "${x}" | sed 's|<LoginURL>||; s|</LoginURL>||' | tr -d '\r ')
-			return 2
+			echo "_302parser_parse_login: following xml-redirect (ret: ${x})."
+			page=$(echo "${x}" | sed 's|<LoginURL>||; s|</LoginURL>||' | tr -d '\r ')
+			err=3; break
+		elif [[ "${x}" =~ "Location: " ]]; then
+			arr=(${x}); page="${arr[2]##*/}"; page="${page/\?*}"
+			[ -n "${page}" ] || page=0
+			continue
 		elif [[ "${x}" =~ "Established connection to " ]]; then
 			arr=(${x}); domain="${arr[3]}"; host="${arr[4]/(/}"; port="${arr[6]/)/}"
-			echo "_302parser_parse_login: parsing success: [domain](${domain}) [host](${host}) [port](${port})"
 			continue
 		fi
 	done< <(cat "${input}" | tr -d '!*')
-	return 0
+	echo "_302parser_parse_login: parsing success: [domain](${domain}) [page](${page}) [host](${host}) [port](${port})"
+
+		if [ ${err} -eq 1 ]; then
+			page="${page}"
+			return 1
+		elif [ ${err} -eq 2 ]; then
+			page="${page}"; domain="${domain}/${page}"
+			return 2
+		elif [ ${err} -eq 3 ]; then
+			page="${page##*/}"; domain="${page}"
+			return 3
+		elif [ ${err} -eq 4 ]; then
+			echo "_302parser_parse_login: warning connected network is not captive-portal (ret: ${domain})."
+			return 4
+		else
+			return 0
+		fi
 }
 
 
-
-_302parser_parse_scripts(){
+_302parser_parse_resources(){
 	ret=0
-	local input index x
-	[ -n "${1}" ] && input="${1}" || input="./302parser_request.log"
-	[ -n "${2}" ] && index="${2}"
+	local input x list
+	[ -n "${1}" ] && input="${1}" || input="./output.log"
+	[ -n "${2}" ] && mode="${2}" || mode="curl"
+	[ -n "${3}" ] && index="${2}" || unset index
 
-	echo "_302parser_parse_scripts: parsing scripts from: ${input}"
-	x=$(cat "${input}" | grep -ao '"[^"]\+"' | grep -F ".js" | tr -d '"' | sort | uniq | tr "\n" " " | tr ' ' ',')
+	echo "_302parser_parse_resources: parsing resources from: ${input}"
+	while read x; do
+		if [ -z "${x}" ] || [[ "${_VAR_IMMUTABLE_EXCLUDE_RESOURCES}" =~ "${x}" ]]; then
+			continue
+		elif [[ "${x}" =~ ".js" ]] && [ "${mode}" = "curl" ]; then
+			list+="${x},"
+		elif [ "${mode}" = "wget" ]; then
+			list+=" ${index}/${x}"
+		fi
+			_VAR_IMMUTABLE_EXCLUDE_RESOURCES+=" ${x}"
+	done < <(cat "${input}" | grep -ao '"[^"]\+"' | tr -d '"' | grep -E "\.[a-zA-Z0-9]{2,3}$" | sed 's|^/||g' | sort | uniq)
 
-	if [ -n "${x}" ]; then
-		echo "_302parser_parse_scripts: parsing success (ret: ${x})."
+	if [ -n "${list}" ]; then
+		echo "_302parser_parse_resources: parsing success (ret: ${list})."
 	else
-		ret="${index}"
-		echo "_302parser_parse_scripts: warning parsing failed (ret: ${ret})."
+		echo "_302parser_parse_resources: error parsing failed (ret: null)."
 		return 1
 	fi
 
-		x="${x// /}"
-	if [ -n "${index}" ]; then
-		ret="{${index},${x:0:-1}}"
-	else
-		ret="{${x:0:-1}}"
+	if [ "${mode}" = "curl" ]; then
+		ret="{${list:0:-1}}"
+		echo "_302parser_parse_resources: sorting finished (ret: ${ret})."
+		return 0
 	fi
-
-	echo "_302parser_parse_scripts: sorting finished (ret: ${ret})."
-	return 0
 }
 
 
 _302parser_parse_status(){
-	status=0
-	local input
-	[ -n "${1}" ] && input="${1}" || input="./302parser_request.log"
+	status="status"
+	local input x
+	[ -n "${1}" ] && input="${1}" || input="./output.log"
+	[ "${2}" = "4" ] && { echo "_302parser_parse_status: warning skipping since error code ${2} is passed."; return 1; }
 
 	echo "_302parser_parse_status: parsing status from: ${input}"
-	status=$(cat "${input}" | grep -ao '[^"]\+"' | grep -F '/status?' | tr -d '"' | sort | uniq)
+	x=$(cat "${input}" | grep -ao '[^"]\+"' | grep -F '/status?' | tr -d '"' | sort | uniq)
 
-	if [ -n "${status}" ]; then
+	if [ -n "${x}" ]; then
+		status="${x}"
 		echo "_302parser_parse_status: parsing success (ret: ${status})."
 		return 0
 	else
-		status="status"
-		echo "_302parser_parse_status: warning parsing failed (ret: status)."
+		echo "_302parser_parse_status: warning parsing failed (ret: ${status})."
 		return 1
 	fi
+}
+
+
+_302parser_gid_parse(){
+	grep -aoe '"[^"]\+"' -e '>[^<]\+<' | grep '[0-9]\{2\}' | sort | uniq
+}
+
+
+_302parser_gid_filter(){
+	grep -Ev "\
+\"#......\"\
+|\"[0-9]{1,5}\"\
+|\"color.*(.*)\"\
+|\".*-.*:.*;\"\
+|\".*:.*px\"\
+|>[0-9]{2,5} [^0-9]{1,10}<\
+|[^0-9] [0-9]{2,5} [^0-9]\
+|\.(png|jpg|js)\"\
+|\".*:.*(px|%);\"\
+|}.*else.*{\
+|\"[^.]{1,5}\"\
+|bg-\[#........\]\
+|(bg-|border-|rounded-|object-|overflow-|items-|font-|marginRight|\"background: |ISO[0-9]{4}[^0-9]|Cp[0-9]{4}[^0-9]|\"windows-[0-9]{4}\")\
+|\"....\"\
+|[^0-9] [0-9]{2,3}% [^0-9]\
+| if (.*) {\
+| [0-9]{1,2}\.[0-9]{2,3} [0-9]{1,3}\.[0-9]{2} \
+|.*().*;.*().*;\
+|[0-9]{1,3}\.[0-9],[0-9]{1,3}\
+| [0-9]{1,2}\.[0-9] [0-9] [0-9] \
+|\\\u....\\\u....\\\u....\
+|.*(.*).*\|\|\
+|RegExp\(.*\)\
+|\(.*\..*\)\
+|[0-9]{1,4}.*\*\
+|.*=.*\?\
+| \|= \
+|(ABCDEF|abcdef)\
+|[0-9]\.[0-9]{2,3} [0-9]\.[0-9]{2,3} \
+|.*function.*\(.*\)/*{\
+|[0-9]{2,3} [0-9]{2,3} [0-9]{2,3} [0-9]{2,3} [0-9]{2,3} [0-9]{2,3}\
+|Math\..*\(.*\)\
+|background: #......;\
+|[0-9a-fA-F]{2}:[0-9a-fA-F]{2}:[0-9a-fA-F]{2}:[0-9a-fA-F]{2}:[0-9a-fA-F]{2}:[0-9a-fA-F]{2}\
+|(return .*\(|t.append\(|String.fromCharCode\(|throw .*\(|constructor\(\)|switch\(.*\)|setAttribute\(|emit\()\
+|,.*:.*,.*:.*,\
+|(width=[0-9]{1,4}[^0-9]|height=[0-9]{1,4}[^0-8])\
+|VARIABLE_LENGTH,\
+|\",.*\[.*\]=\"\
+|.*\(.*\),.*\(.*\),\
+|>=.{1,10}<|\",.{1,10}\"|\".{1,10}\?\"|>.{1,10}&.*\(|>.{1,10}\|=.*<|\+\(.*\)\+\(.*\)<\
+"
 }
 
 
 _302parser_parse_gid(){
-	gid=(0 0)
-	local input x
-	[ -n "${1}" ] && input="${1}" || input="./302parser_request.log"
+	gid=(0 0 0)
+	local input code x
+	[ -n "${1}" ] && input="${1}" || input="./output.log"
+	[ -n "${2}" ] && code="${2}" || unset code
 
-	echo "_302parser_parse_gid: parsing gid from: ${input}"
-	gid[1]=$(cat "${input}" | tr -d ' -)(' | grep -oE '[0-9]{7}|[0-9]{8}|[0-9]{9}' 2>/dev/null | tr '\n' '.')
-
-	if [ -n "${gid[1]}" ]; then
-		echo "_302parser_parse_gid: parsing success (ret: ${gid[1]})."
-	else
-		gid=(0 0)
-		echo "_302parser_parse_gid: error generating gid failed (err: null)."
+		echo "_302parser_parse_gid: parsing gid from: ${input}"
+	if [ "${code}" = "4" ]; then
+		echo "_302parser_parse_gid: warning skipping since error code ${2} is passed."
 		return 1
+	else
+
+			gid[1]=$(cat "${input}" | _302parser_gid_parse | tr '\r\n' '.')
+		if [ -n "${gid[1]}" ]; then
+			echo "_302parser_parse_gid: parsing success (ret: ${gid[1]})."
+		else
+			echo "_302parser_parse_gid: parsing failed (ret: ${gid[1]})."
+		fi
+
+			gid[2]=$(cat "${input}" | grep -Eao '<title.*>.*</title>|<h[1-6].*>.*</h[1-6]>' | grep -va '{{.*}}' | tr '\r\n' '.')
+		if [ -n "${gid[2]}" ]; then
+			echo "_302parser_parse_gid: parsing success (ret: ${gid[2]})."
+		else
+			echo "_302parser_parse_gid: parsing failed (ret: ${gid[2]})."
+		fi
+				
+			gid[1]=$(cat "${input}" | _302parser_gid_parse | _302parser_gid_filter | tr '\r\n' '.')
+		if [ -n "${gid[1]}" ]; then
+			echo "_302parser_parse_gid: filtering success (ret: ${gid[1]})."
+		else
+			echo "_302parser_parse_gid: filtering failed (ret: ${gid[1]})."
+		fi	
 	fi
 
-	x=$(echo -n "${gid[1]}" | md5sum); gid[0]="${x/  -/}"
+	#echo "_302parser_parse_gid: error generating gid failed (err: null)."; return 1; }
+	x=$(echo -n "${gid[1]}.${gid[2]}" | md5sum); gid[0]="${x/  -/}"
 	return 0
+}
+
+
+_302parser_crawl_auto(){
+		output_dir="${output%/*}"
+			mkdir -p "${output_dir}" || return 1
+				_302parser_crawl_fetch "${host}:${port}" "${output_dir}"; exit
+					_302parser_parse_resources "${output_dir}" "${domain%/*}"; result="${ret}"
+						_302parser_crawl_fetch "${result}" "${output_dir}"
 }
 
 
 _302parser_parse_auto(){
-	local request output more
-	[ -n "${1}" ] && request="${1}" || request="http://google.com"
-	[ -n "${2}" ] && output="${2}" || output="./302parser_auto.log"
+	local url output output_dir err result _attempt
+	[ -n "${1}" ] && url="${1}" || url="http://google.com"
+	[ -n "${2}" ] && output="${2}" || output="./output.log"
 
-	_302parser_send_request "${request}" "${output}" || return 1
-	_302parser_parse_login "${output}"
+	echo -n>"${output}"
+	_302parser_request_send "${url}" "${output}" || return 1
+		_302parser_parse_login "${output}"; err=${?}
 
-	if [ ${?} -eq 0 ]; then
+	if [ ${err} -eq 1 ]; then
 		:
-	elif [ ${?} -eq 1 ]; then
-		domain="${domain}/${ret}"; more=1
-		_302parser_parse_scripts "${output}" "${ret}"
-		_302parser_send_request "${host}:${port}/${ret}" "${output}" || return 1
-		#_302parser_crawl_request "${host}:${port}/${ret}" "${output}" || return 1
-	elif [ ${?} -eq 2 ]; then
-		domain="${ret}"; more=1
-		_302parser_parse_scripts "${output}" "${ret##*/}"
-		_302parser_send_request "${host}:${port}/${ret}" "${output}" || return 1
-		#_302parser_crawl_request "${host}:${port}/${ret}" "${output}" || return 1
+	elif [ ${err} -eq 2 ] || [ ${err} -eq 3 ]; then
+		_302parser_request_send "${host}:${port}/${page}" "${output}" || return 1
+	elif [ ${err} -eq 4 ]; then
+		_302parser_parse_status "${output}" "${err}"
+		_302parser_parse_gid "${output}" "${err}"
+		return 4
 	else
-		echo "_302parser_parse_auto: an error occurred while trying to parse (err: ${?}). "
+		echo "_302parser_parse_auto: an error occurred while trying to parse (err: ${err}). "
 		return 1
 	fi
 
-	if [ "${more}" == "1" ]; then
-		_302parser_parse_scripts "${output}"
-		_302parser_send_request "${host}:${port}/${ret}" "${output}" || return 1
+		_attempt=0
+	until [ ${_attempt} -ge 10 ]; do
+		_302parser_parse_resources "${output}" "curl"; result="${ret}"
+		[ "${result}" = "0" ] && break
+		_302parser_request_send "${host}:${port}/${result}" "${output}" || return 1
+		_attempt=$((_attempt+1))
+	done
+
+	if [ ${_attempt} -ge 10 ]; then
+		echo "_302parser_parse_auto: unexpected error exccedd maximum attempts (ret: ${result})."
 	fi
 
 	_302parser_parse_status "${output}"
-	_302parser_parse_gid "${output}" || return 1
+	_302parser_parse_gid "${output}" "p2"
 
 	return 0
 }
 
-#_302parser_parse_auto
+
+_302parser_test_manually(){
+	echo -e "_302parser_test_manually: performing manually test: $1"
+	echo -e "\nPARSE:"
+	cat "$1" | _302parser_gid_parse
+	echo -e "\nFilter:"
+	cat "$1" | _302parser_gid_parse | _302parser_gid_filter
+}
+
+
+_302parser_test_filter(){
+	local result_1 result_2
+	echo -e "_302parser_test_filter: performing test-1..."
+	result_1=$(cat "tests/302parser-simple.txt" | _302parser_gid_filter | wc -l)
+
+	echo -e "_302parser_test_filter: performing test-2..."
+	result_2=$(cat "tests/302parser-pattern.txt" | _302parser_gid_filter | wc -l)
+
+	if [ ${result_1} -eq 0 ]; then
+		echo -e "_302parser_test_filter: test-1 passed (ret: ${result_1})."
+	else
+		echo -e "\nTest-1 Parse:"
+		cat "tests/302parser-simple.txt"
+
+		echo -e "\nTest-1 Filter:"
+		cat "tests/302parser-simple.txt" | _302parser_gid_filter >tmp
+		cat "tests/302parser-simple.txt" "tmp" | sort | uniq -u
+
+		echo -e "_302parser_test_filter: test-1 failed (ret: ${result_1})."
+	fi
+
+	if [ ${result_2} -eq 55 ]; then
+		echo -e "_302parser_test_filter: test-2 passed (ret: ${result_2})."
+	else
+		echo -e "\nTest-2 Parse:"
+		cat "tests/302parser-pattern.txt"
+
+		echo -e "\nTest-2 Filter:"
+		cat "tests/302parser-pattern.txt" | _302parser_gid_filter >tmp
+		cat "tests/302parser-pattern.txt" "tmp" | sort | uniq -u
+
+		echo -e "_302parser_test_filter: test-2 failed (ret: ${result_2})."
+	fi
+
+}
+
+#_302parser_test_filter
+#_302parser_test_manually "$1"
+#_302parser_parse_resources "$1"
+#_302parser_parse_login "$1"
+#_302parser_parse_auto "${@}"
+#_302parser_parse_gid "$1"
+#_302parser_parse_resources "${@}"
 

@@ -5,9 +5,9 @@
 						_process_clean()
 										{
 											echo "cleanning previous releases..."
-											rm -f "${PREFIX}/bin/ws-uploader" "${PREFIX}/bin/ws-updater" "${PREFIX}/bin/sss" "${PREFIX}/bin/netspotter" "${PREFIX}/bin/ns-uploader" "${PREFIX}/bin/ws-merge" ~/.wsu.pid ~/.wsupdate.pid ~/.ns.pid ~/.wsg.pid ~/.wsr.pid ~/ns.tar.gz &>/dev/null
+											rm -f "${PREFIX}/bin/ws-uploader" "${PREFIX}/bin/ws-updater" "${PREFIX}/bin/sss" "${PREFIX}/bin/netspotter" "${PREFIX}/bin/ns-uploader" "${PREFIX}/bin/ws-merge" ~/.wsu.pid ~/.wsupdate.pid ~/.ns.pid ~/.wsg.pid ~/.wsr.pid &>/dev/null
 											rm -rf ~/.ws ~/.ws.pid ~/.wsc.pid ~/.wsm.pid "${PREFIX}/etc/m.jq" "${PREFIX}/bin/wifi-spotter-config" "${PREFIX}/bin/wifi-spotter-updater" &>/dev/null
-											rm -f "${home_dir}/logs/.wsc.pid" "${home_dir}/logs/.wsm.pid" "${home_dir}/logs/updater.pid"
+											rm -f "${home_dir}/logs/.wsc.pid" "${home_dir}/logs/.wsm.pid"
 											rm -f "${home_dir}/logs/"*.log
 										}
 						_process_storage()
@@ -51,12 +51,12 @@
 														echo "Getting packages updates..."
 														apt update || exit 1
 													if ! command -v clang >/dev/null; then
-														apt upgrade -y || exit 1
+														yes | apt upgrade -y || exit 1
 													fi
 
 													echo "Installing required packages..."
 													apt install -y "root-repo" || exit 1
-													apt install -y ${list} || exit 1
+													yes | apt install -y ${list} || exit 1
 												fi
 											else
 												echo "Error: unknown platform"
@@ -132,9 +132,13 @@
 													link="https://raw.githubusercontent.com/spotter22/wifi-spotter/refs/heads/main/LATEST"
 
 												if [ -s "${home_dir}/updates/update.tar.gz" ]; then
-													echo "testing tarball..."
-													tar -tf "${home_dir}/updates/update.tar.gz" &>/dev/null && return 0 \
+													if [ "${1}" = "--slient" ]; then
+														echo "testing tarball..."
+														tar -tf "${home_dir}/updates/update.tar.gz" &>/dev/null && return 0 \
 														|| rm -f "${home_dir}/updates/update.tar.gz"
+													else
+														rm -f "${home_dir}/updates/update.tar.gz"
+													fi
 												fi
 
 													echo "getting latest version info..."
@@ -185,14 +189,14 @@
 		unset home_dir current_dir
 		version="unknown"
 		commit="unknown"
-	if [[ "${@}" = *"--uninstall"* ]]; then
+	if [ "${1}" = "--uninstall" ]; then
 			read -p "To continue uninstalling enter (Yes/y):" option
 		if [[ "${option}" =~ (Y/y) ]]; then
 			_process_storage || exit 1
 			rm -rf "${home_dir}"
 			echo "uninstalling completed !"
 		fi
-	elif [[ "${@}" = *"--silent-update"* ]]; then
+	elif [ "${1}" = "--silent-update" ]; then
 			_process_storage || exit 1
 		if [ ! -d "${home_dir}/updates" ]; then
 			echo "Please use instead: --install-latest"
@@ -201,11 +205,11 @@
 			_process_ufetch "--silent" || exit 1
 			_process_uinstall "--silent" || exit 1
 		fi
-	elif [[ "${@}" = *"--install-latest"* ]]; then
+	elif [ "${1}" = "--install-latest" ]; then
 			_process_storage || exit 1
 			_process_ufetch "--install" || exit 1
 			_process_uinstall "--install" || exit 1
-	elif [[ "${@}" = *"--install"* ]]; then
+	elif [ "${1}" = "--install" ]; then
 		_process_storage || exit 1
 		current_dir=$(pwd)
 		_process_deps || exit 1

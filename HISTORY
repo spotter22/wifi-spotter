@@ -1,5 +1,17 @@
 
 
+Version 4.0-b3 (Build: 08-05-2026):
+  updater function:
+      1. fixed an issue were multiple background instances was running.
+  installer script:
+      1. fixed an issue were installer uses the old downloaded update instead of latest version.
+      2. fixed an issue were installer hangs on initial termux upgrades.
+  302-parser script:
+      1. rewrote gid parser for more probability and easier maintaining.
+      2. added tests directory.
+      3. some other fixes and improvements for better error handling.
+      4. fixed an issue were parsing js-redirect fails on some pages.
+
 Version 4.0-b2 (Build: 27-04-2026):
   installer script;
       1. improved silent updater function.
