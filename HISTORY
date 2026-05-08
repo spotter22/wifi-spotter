@@ -1,5 +1,9 @@
 
 
+Version 4.0-b4 (Build: 08-05-2026):
+  network info parser function:
+     1. fixed error handling.
+
 Version 4.0-b3 (Build: 08-05-2026):
   updater function:
       1. fixed an issue were multiple background instances was running.

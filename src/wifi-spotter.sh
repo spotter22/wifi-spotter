@@ -427,7 +427,7 @@
 														[ "${iwfreq[1]}" = "0" ] && { _echo "\tCannot read freq: ${iwfreq[1]}" 1; return 1; }
 
 												{ stdin="$x"; _process_serveraddress; }
-														[ ${?} -ne 0 ] && { _echo "\tError reading info failed !"; return 1; }
+														[ ${?} -ne 0 ] && { _echo "\tError reading info failed !" 1; return 1; }
 
 											_echo "- Network Information:\n\tSSID: ${iwssid[1]}\n\tBSSID: ${iwbssid[1]}\n\tFrequency: ${iwfreq[1]}\n\tGID: ${gid:0:12}\n\tYour IP-Address: $devip\n\tYour MAC-Address: ${addr[2]}\n\tGateway: $gateway\n\tRoute: $route\n\tServer-Domain: $domain\n\tServer-Address: ${host}:${port}" 1
 												return 0
@@ -458,6 +458,7 @@
 										}
 							_process_serveraddress()
 										{
+												local err
 											if [ ! -s "${home_dir}/plugins/302-parser.sh" ]; then
 												_echo "\tError can not find: ${home_dir}/plugins/302-parser.sh" 1
 												return 1
@@ -467,8 +468,8 @@
 											fi
 
 											source "${home_dir}/plugins/302-parser.sh"
-											_302parser_parse_auto "http://google.com" "${home_dir}/logs/tmp" &>>"${log_file}" || return 1
-											return 0
+											_302parser_parse_auto "http://google.com" "${home_dir}/logs/tmp" &>>"${log_file}"; err=${?}
+											([ ${err} -eq 4 ] || [ ${err} -eq 0 ]) && return 0 || return ${err}
 										}
 
 
