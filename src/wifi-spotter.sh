@@ -285,6 +285,18 @@
 																		_echo "Error cannot write into: ${home_dir}/logs" 1; return 1
 																	fi
 																}
+														_source_plugin()
+																{
+																	if [ ! -s "${1}" ]; then
+																		_echo "\tError can not find plugin: ${1}" 1
+																		return 1
+																	elif [ ! -x "${1}" ]; then
+																		_echo "\tError can not execute plugin: ${1}" 1
+																		return 1
+																	else
+																		source "${1}" && return 0 || return 1
+																	fi
+																}
 												local db_struct db_file db_filename home_dir log_file hum_date bot_date option help scan_option monitor_option args connect_option version commit confirm_update
 												db_struct='{"ws":{"bssid":{},"gid":{}}}'
 												home_dir=~/wifi-spotter-root
@@ -313,6 +325,9 @@
 													?) mode="usage"; break;;
 												esac
 											done
+												# trap cleanup
+												kill -9 "$(ps -ef | awk '{print $2" "$9}' | grep -E "${home_dir}/plugins/reporter.sh|${home_dir}/plugins/updater.sh" | awk '{print $1}' | tr '\n' ' ')" 2>/dev/null
+
 												# updater
 											if [ -s "${home_dir}/updates/update.tar.gz" ]; then
 													echo -e "${color_success}New version available !${color_reset}"
@@ -458,16 +473,8 @@
 										}
 							_process_serveraddress()
 										{
-												local err
-											if [ ! -s "${home_dir}/plugins/302-parser.sh" ]; then
-												_echo "\tError can not find: ${home_dir}/plugins/302-parser.sh" 1
-												return 1
-											elif [ ! -x "${home_dir}/plugins/302-parser.sh" ]; then
-												_echo "\tError can not execute: ${home_dir}/plugins/302-parser.sh" 1
-												return 1
-											fi
-
-											source "${home_dir}/plugins/302-parser.sh"
+											local err
+											_source_plugin "${home_dir}/plugins/302-parser.sh" || return 1
 											_302parser_parse_auto "http://google.com" "${home_dir}/logs/tmp" &>>"${log_file}"; err=${?}
 											([ ${err} -eq 4 ] || [ ${err} -eq 0 ]) && return 0 || return ${err}
 										}
@@ -567,8 +574,9 @@
 										}
 							_parse_html()
 										{
-											grep -ao '"[^"]\+"' "$stdin" | sort | uniq
-											grep -ao '>[^<]\+<' "$stdin" | sort | uniq
+											cat "${stdin}" | jq . 2>/dev/null && return 0
+											_source_plugin "${home_dir}/plugins/302-parser.sh" || return 1
+											cat "${stdin}" | _302parser_parse_strings | _302parser_filter_strings
 											return 0
 										}
 							_convert_ipv6_into_mac()

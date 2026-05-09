@@ -1,5 +1,14 @@
 
 
+Version 4.0-b5 (Build: 09-05-2026):
+  302-parser script:
+    1. added digits parser for better gid parsing.
+  hotspot page parser:
+    1. added status page json parser for supported portals.
+    2. added status page filtering.
+  main function:
+    1. added trap cleaner for reducing requests pressure.
+
 Version 4.0-b4 (Build: 08-05-2026):
   network info parser function:
      1. fixed error handling.

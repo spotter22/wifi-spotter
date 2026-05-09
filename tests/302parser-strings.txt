@@ -15,6 +15,8 @@
 7: the magic number is 99 which can be used to...
 8: "assets/js/jquery-1.11.2.min.js"
 8: "img/foo.png"
+8: "assets/fonts/Almarai.css"
+8: "assets/img/labtop.svg"
 9: "background:rgba(0,0,0,0.4);color: #FFF;font-size: 11px;"
 9: "color: #FFFF00; font-size: 9px;"
 9: "height: 20px;"
@@ -38,6 +40,7 @@
 13: ",p.ISO88591=I.ISO8859_1.getName(),p.EUC_JP="
 13: "Cp1250"
 13: "windows-1256"
+13: "linear-gradient(45deg, #c311fe, #01f4e3)"
 14: "w-28"
 15: "foo 99% example"
 15: "foo 100% example"
@@ -109,3 +112,9 @@
 42: >>4&252645135|(252645135&r)<
 42: >>1]|=128<
 42: >>16)+(c>>16)+(a>>16)<
+43: "http://example.com"
+43: "https://example.com"
+44: "0 0 122.88 62.63"
+44: "info red"
+44: "0 0 122.88 62.63"
+45: "#gentle-wave" | "--acid-height" | "1.1" | "IE=edge,chrome=1" | "JavaScript" | "Layer_1" | "X-UA-Compatible" | "_blank" | "acid-container" | "battery" | "battery2" | "center" | "copyright2" | "details" | "erase-cookie" | "ether_cart" | "expires" | "floateed" | "gentle-wave" | "header" | "hidden" | "icon-clock-1" | "icon-download-1" | "icon-login" | "icon-user" | "image/png" | "logo-basheer" | "logout" | "no-cache" | "openAdvert()" | "parallax" | "percentage" | "pragma" | "preserve" | "refresh" | "remain" | "stylesheet" | "submit" | "text/css" | "text/javascript" | "theme-color" | "timeLeft" | "valuee" | >nameCard();<

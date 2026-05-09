@@ -147,12 +147,12 @@ _302parser_parse_status(){
 }
 
 
-_302parser_gid_parse(){
-	grep -aoe '"[^"]\+"' -e '>[^<]\+<' | grep '[0-9]\{2\}' | sort | uniq
+_302parser_parse_strings(){
+	grep -aoe '"[^"]\+"' -e '>[^<]\+<' | sort | uniq
 }
 
 
-_302parser_gid_filter(){
+_302parser_filter_strings(){
 	grep -Ev "\
 \"#......\"\
 |\"[0-9]{1,5}\"\
@@ -161,12 +161,12 @@ _302parser_gid_filter(){
 |\".*:.*px\"\
 |>[0-9]{2,5} [^0-9]{1,10}<\
 |[^0-9] [0-9]{2,5} [^0-9]\
-|\.(png|jpg|js)\"\
+|\.(png|jpg|js|css|svg)\"\
 |\".*:.*(px|%);\"\
 |}.*else.*{\
 |\"[^.]{1,5}\"\
 |bg-\[#........\]\
-|(bg-|border-|rounded-|object-|overflow-|items-|font-|marginRight|\"background: |ISO[0-9]{4}[^0-9]|Cp[0-9]{4}[^0-9]|\"windows-[0-9]{4}\")\
+|(bg-|border-|rounded-|object-|overflow-|items-|font-|marginRight|\"background: |ISO[0-9]{4}[^0-9]|Cp[0-9]{4}[^0-9]|\"windows-[0-9]{4}\"|linear-gradient)\
 |\"....\"\
 |[^0-9] [0-9]{2,3}% [^0-9]\
 | if (.*) {\
@@ -195,6 +195,72 @@ _302parser_gid_filter(){
 |\",.*\[.*\]=\"\
 |.*\(.*\),.*\(.*\),\
 |>=.{1,10}<|\",.{1,10}\"|\".{1,10}\?\"|>.{1,10}&.*\(|>.{1,10}\|=.*<|\+\(.*\)\+\(.*\)<\
+|http://|https://\
+|.* \
+|\"#gentle-wave\"|\"--acid-height\"|\"1.1\"|\"IE=edge,chrome=1\"|\"JavaScript\"|\"Layer_1\"|\"X-UA-Compatible\"|\"_blank\"|\"acid-container\"|\"battery\"|\"battery2\"|\"center\"|\"copyright2\"|\"details\"|\"erase-cookie\"|\"ether_cart\"|\"expires\"|\"floateed\"|\"gentle-wave\"|\"header\"|\"hidden\"|\"icon-clock-1\"|\"icon-download-1\"|\"icon-login\"|\"icon-user\"|\"image/png\"|\"logo-basheer\"|\"logout\"|\"no-cache\"|\"openAdvert\(\)\"|\"parallax\"|\"percentage\"|\"pragma\"|\"preserve\"|\"refresh\"|\"remain\"|\"stylesheet\"|\"submit\"|\"text/css\"|\"text/javascript\"|\"theme-color\"|\"timeLeft\"|\"valuee\"|>nameCard\(\);<\
+"
+}
+
+
+_302parser_parse_digits(){
+	grep -Eo "\
+[0-9]{5,15}\
+|\([0-9]-[0-9]{3}\) [0-9]{5}\
+|\([0-9]-[0-9][0-9][0-9]\) [0-9][0-9][0-9][0-9][0-9]\
+|\([0-9][0-9][0-9]\) [0-9][0-9][0-9]-[0-9][0-9][0-9][0-9]\
+|\([0-9][0-9][0-9]\) [0-9][0-9][0-9][0-9][0-9][0-9]\
+|[0-9] \([0-9][0-9][0-9]\) [0-9][0-9][0-9] [0-9][0-9][0-9][0-9]\
+|[0-9] \([0-9][0-9][0-9]\) [0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]\
+|[0-9] [0-9][0-9] [0-9][0-9][0-9][0-9][0-9][0-9]\
+|[0-9] [0-9][0-9][0-9] [0-9][0-9][0-9]\
+|[0-9] [0-9][0-9][0-9] [0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]\
+|[0-9] [0-9][0-9][0-9][0-9] [0-9][0-9][0-9][0-9]\
+|[0-9][0-9] [0-9][0-9] [0-9][0-9] [0-9][0-9] [0-9][0-9]\
+|[0-9][0-9] [0-9][0-9] [0-9][0-9] [0-9][0-9]\
+|[0-9][0-9] [0-9][0-9] [0-9][0-9]\
+|[0-9][0-9] [0-9][0-9][0-9] [0-9][0-9] [0-9][0-9]\
+|[0-9][0-9] [0-9][0-9][0-9] [0-9][0-9][0-9]\
+|[0-9][0-9] [0-9][0-9][0-9] [0-9][0-9][0-9][0-9]\
+|[0-9][0-9] [0-9][0-9][0-9]\
+|[0-9][0-9] [0-9][0-9][0-9][0-9][0-9][0-9]\
+|[0-9][0-9] [0-9][0-9][0-9][0-9][0-9][0-9][0-9]\
+|[0-9][0-9] [0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]\
+|[0-9][0-9][0-9] [0-9][0-9] [0-9][0-9] [0-9][0-9]\
+|[0-9][0-9][0-9] [0-9][0-9] [0-9][0-9]\
+|[0-9][0-9][0-9] [0-9][0-9] [0-9][0-9][0-9] [0-9][0-9]\
+|[0-9][0-9][0-9] [0-9][0-9][0-9] [0-9][0-9] [0-9][0-9]\
+|[0-9][0-9][0-9] [0-9][0-9][0-9] [0-9][0-9][0-9]\
+|[0-9][0-9][0-9] [0-9][0-9][0-9] [0-9][0-9][0-9][0-9]\
+|[0-9][0-9][0-9] [0-9][0-9][0-9]\
+|[0-9][0-9][0-9] [0-9][0-9][0-9]-[0-9][0-9][0-9]\
+|[0-9][0-9][0-9] [0-9][0-9][0-9][0-9]\
+|[0-9][0-9][0-9] [0-9][0-9][0-9][0-9][0-9]\
+|[0-9][0-9][0-9] [0-9][0-9][0-9][0-9][0-9][0-9]\
+|[0-9][0-9][0-9] [0-9][0-9][0-9][0-9][0-9][0-9][0-9]\
+|[0-9][0-9][0-9] [0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]\
+|[0-9][0-9][0-9]-[0-9][0-9][0-9] [0-9][0-9] [0-9][0-9]\
+|[0-9][0-9][0-9]-[0-9][0-9][0-9] [0-9][0-9][0-9][0-9]\
+|[0-9][0-9][0-9]-[0-9][0-9][0-9]-[0-9][0-9][0-9][0-9]\
+|[0-9][0-9][0-9]-[0-9][0-9][0-9][0-9]\
+|[0-9][0-9][0-9]-[0-9][0-9][0-9][0-9]-[0-9][0-9][0-9][0-9]\
+|[0-9][0-9][0-9]-[0-9][0-9][0-9][0-9][0-9][0-9][0-9]\
+|[0-9][0-9][0-9][0-9] [0-9][0-9] [0-9][0-9] [0-9][0-9]\
+|[0-9][0-9][0-9][0-9] [0-9][0-9] [0-9][0-9][0-9]\
+|[0-9][0-9][0-9][0-9] [0-9][0-9][0-9] [0-9][0-9] [0-9][0-9]\
+|[0-9][0-9][0-9][0-9] [0-9][0-9][0-9] [0-9][0-9][0-9]\
+|[0-9][0-9][0-9][0-9] [0-9][0-9][0-9] [0-9][0-9][0-9][0-9]\
+|[0-9][0-9][0-9][0-9] [0-9][0-9][0-9]-[0-9][0-9][0-9][0-9]\
+|[0-9][0-9][0-9][0-9] [0-9][0-9][0-9][0-9]\
+|[0-9][0-9][0-9][0-9] [0-9][0-9][0-9][0-9][0-9][0-9]\
+|[0-9][0-9][0-9][0-9] [0-9][0-9][0-9][0-9][0-9][0-9][0-9]\
+|[0-9][0-9][0-9][0-9]-[0-9][0-9][0-9][0-9]\
+|[0-9][0-9][0-9][0-9]-[0-9][0-9][0-9][0-9]-[0-9][0-9][0-9]\
+|[0-9][0-9][0-9][0-9]-[0-9][0-9][0-9][0-9][0-9][0-9]\
+|[0-9][0-9][0-9][0-9][0-9] [0-9][0-9][0-9][0-9][0-9][0-9]\
+|[0-9][0-9][0-9][0-9][0-9]-[0-9][0-9][0-9][0-9][0-9][0-9]\
+|[0-9][0-9][0-9][0-9][0-9][0-9] [0-9][0-9][0-9][0-9][0-9]\
+|[0-9][0-9][0-9][0-9][0-9][0-9]\
+|[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]\
 "
 }
 
@@ -211,7 +277,7 @@ _302parser_parse_gid(){
 		return 1
 	else
 
-			gid[1]=$(cat "${input}" | _302parser_gid_parse | tr '\r\n' '.')
+			gid[1]=$(cat "${input}" | _302parser_parse_strings | tr '\r\n' '.')
 		if [ -n "${gid[1]}" ]; then
 			echo "_302parser_parse_gid: parsing success (ret: ${gid[1]})."
 		else
@@ -225,7 +291,7 @@ _302parser_parse_gid(){
 			echo "_302parser_parse_gid: parsing failed (ret: ${gid[2]})."
 		fi
 				
-			gid[1]=$(cat "${input}" | _302parser_gid_parse | _302parser_gid_filter | tr '\r\n' '.')
+			gid[1]=$(cat "${input}" | _302parser_parse_strings | _302parser_parse_digits | sort | uniq | tr '\r\n' '.')
 		if [ -n "${gid[1]}" ]; then
 			echo "_302parser_parse_gid: filtering success (ret: ${gid[1]})."
 		else
@@ -292,49 +358,50 @@ _302parser_parse_auto(){
 _302parser_test_manually(){
 	echo -e "_302parser_test_manually: performing manually test: $1"
 	echo -e "\nPARSE:"
-	cat "$1" | _302parser_gid_parse
+	cat "$1" | _302parser_parse_strings
 	echo -e "\nFilter:"
-	cat "$1" | _302parser_gid_parse | _302parser_gid_filter
+	cat "$1" | _302parser_parse_strings | _302parser_filter_strings
 }
 
 
-_302parser_test_filter(){
-	local result_1 result_2
-	echo -e "_302parser_test_filter: performing test-1..."
-	result_1=$(cat "tests/302parser-simple.txt" | _302parser_gid_filter | wc -l)
+_302parser_test_all(){
+	local result_digits result_strings
+	echo -e "_302parser_test_filter: performing digits-test..."
+	result_digits=$(cat "tests/302parser-digits.txt" | _302parser_parse_digits | wc -l)
 
-	echo -e "_302parser_test_filter: performing test-2..."
-	result_2=$(cat "tests/302parser-pattern.txt" | _302parser_gid_filter | wc -l)
+	echo -e "_302parser_test_filter: performing strings-test..."
+	result_strings=$(cat "tests/302parser-strings.txt" | _302parser_filter_strings | wc -l)
 
-	if [ ${result_1} -eq 0 ]; then
-		echo -e "_302parser_test_filter: test-1 passed (ret: ${result_1})."
+	if [ ${result_digits} -eq 55 ]; then
+		echo -e "_302parser_test_filter: Passed digits-test (ret: ${result_digits})."
 	else
-		echo -e "\nTest-1 Parse:"
-		cat "tests/302parser-simple.txt"
+		echo -e "\nParse (digits-test):"
+		cat "tests/302parser-digits.txt"
 
-		echo -e "\nTest-1 Filter:"
-		cat "tests/302parser-simple.txt" | _302parser_gid_filter >tmp
-		cat "tests/302parser-simple.txt" "tmp" | sort | uniq -u
+		echo -e "\nFilter (digits-test):"
+		cat "tests/302parser-digits.txt" | _302parser_parse_digits >tmp
+		cat "tests/302parser-digits.txt" "tmp" | sort | uniq -u
 
-		echo -e "_302parser_test_filter: test-1 failed (ret: ${result_1})."
+		echo -e "_302parser_test_filter: Failed digits-test (ret: ${result_digits})."
 	fi
 
-	if [ ${result_2} -eq 55 ]; then
-		echo -e "_302parser_test_filter: test-2 passed (ret: ${result_2})."
+	if [ ${result_strings} -eq 0 ]; then
+		echo -e "_302parser_test_filter: Passed strings-test (ret: ${result_strings})."
 	else
-		echo -e "\nTest-2 Parse:"
-		cat "tests/302parser-pattern.txt"
+		echo -e "\nParse (strings-test):"
+		cat "tests/302parser-strings.txt"
 
-		echo -e "\nTest-2 Filter:"
-		cat "tests/302parser-pattern.txt" | _302parser_gid_filter >tmp
-		cat "tests/302parser-pattern.txt" "tmp" | sort | uniq -u
+		echo -e "\nFilter (strings-test):"
+		cat "tests/302parser-strings.txt" | _302parser_filter_strings >tmp
+		cat "tests/302parser-strings.txt" "tmp" | sort | uniq -u
 
-		echo -e "_302parser_test_filter: test-2 failed (ret: ${result_2})."
+		echo -e "_302parser_test_filter: Failed strings-test (ret: ${result_strings})."
 	fi
 
 }
 
-#_302parser_test_filter
+
+#_302parser_test_all
 #_302parser_test_manually "$1"
 #_302parser_parse_resources "$1"
 #_302parser_parse_login "$1"
