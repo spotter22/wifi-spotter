@@ -426,7 +426,7 @@ _302parser_test_all(){
 
 
 #_302parser_test_all
-_302parser_test_manually "$1"
+#_302parser_test_manually "$1"
 #_302parser_parse_resources "$1"
 #_302parser_parse_login "$1"
 #_302parser_parse_auto "${@}"
