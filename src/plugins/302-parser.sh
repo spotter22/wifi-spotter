@@ -197,7 +197,31 @@ _302parser_filter_strings(){
 |>=.{1,10}<|\",.{1,10}\"|\".{1,10}\?\"|>.{1,10}&.*\(|>.{1,10}\|=.*<|\+\(.*\)\+\(.*\)<\
 |http://|https://\
 |.* \
-|\"#gentle-wave\"|\"--acid-height\"|\"1.1\"|\"IE=edge,chrome=1\"|\"JavaScript\"|\"Layer_1\"|\"X-UA-Compatible\"|\"_blank\"|\"acid-container\"|\"battery\"|\"battery2\"|\"center\"|\"copyright2\"|\"details\"|\"erase-cookie\"|\"ether_cart\"|\"expires\"|\"floateed\"|\"gentle-wave\"|\"header\"|\"hidden\"|\"icon-clock-1\"|\"icon-download-1\"|\"icon-login\"|\"icon-user\"|\"image/png\"|\"logo-basheer\"|\"logout\"|\"no-cache\"|\"openAdvert\(\)\"|\"parallax\"|\"percentage\"|\"pragma\"|\"preserve\"|\"refresh\"|\"remain\"|\"stylesheet\"|\"submit\"|\"text/css\"|\"text/javascript\"|\"theme-color\"|\"timeLeft\"|\"valuee\"|>nameCard\(\);<\
+|\"#gentle-wave\"|\"\).replace\(\"|\"\){document.write\(\"|\"--acid-height\"|\"-upoff\"|\".replace\(\"|\"1.1\"\
+|\"16M/16M\"|\"256k/256k\"|\"32M/32M\"|\"512k/512k\"|\";path=/\"|\"</div>\"|\">unlimited</span>\"\
+|\"Cache-Control\"|\"Content-Type\"|\"Expires\"|\"IE=edge,chrome=1\"|\"JavaScript\"|\"Layer_1\"\
+|\"Pragma\"|\"X-UA-Compatible\"|\"_blank\"|\"acid-container\"|\"action-button\"|\"action-buttons\"\
+|\"additional-options\"|\"adv.html\"|\"applyChange\"|\"assets/img/favicon.ico\"|\"banner\"|\"battery\"\
+|\"battery2\"|\"btn-group\"|\"button\"|\"byteLeft\"|\"byteLeft2\"|\"byteLeft3\"|\"byteLeft4\"|\"byteLeft5\"\
+|\"card-con\"|\"center\"|\"choose-auto-update-off\"|\"choose-link-card-to-8888\"|\"content-wrapper\"\
+|\"copyright2\"|\"details\"|\"domain\"|\"domain=\"|\"domainvalue\(\)\"|\"dropdown-container\"\
+|\"dropdown-style\"|\"erase-cookie\"|\"eraseCookie\"|\"ether_cart\"|\"expires\"|\"expires=\"\
+|\"finalLogoutButton\"|\"floateed\"|\"font/woff2\"|\"fonts/Cairo.woff2\"|\"forface\"|\"format-detection\"\
+|\"gentle-wave\"|\"header\"|\"hidden\"|\"icon-alert\"|\"icon-clock-1\"|\"icon-download\"|\"icon-download-1\"\
+|\"icon-login\"|\"icon-off\"|\"icon-user\"|\"image/png\"|\"images/favicon.ico\"|\"index.html\"|\"info-section\"\
+|\"info-title\"|\"info-value\"|\"interactive\"|\"javascript\"|\"lastcard\"|\"lastcardsize\"|\"lastcardspeed\"|\"lastsize\"\
+|\"lastuser\"|\"letter\"|\"letter-a\"|\"letter-i\"|\"letter-k\"|\"letter-l\"|\"letter-n\"|\"letter-r\"|\"letter-s\"|\"letter-t\"|\"letters\"\
+|\"line_fragmentshader\"|\"line_vertexshader\"|\"logo-0000\"|\"logo-basheer\"|\"logo_x\"|\"logout\"|\"logoutButton\"\
+|\"main-content-area\"|\"mask_x1\"|\"mask_x2\"|\"message-content\"|\"message-wrapper\"|\"middle\"|\"no-cache\"\
+|\"openAdvert\(\)\"|\"openQuranPlayer\(\)\"|\"overlay\"|\"parallax\"|\"password\"|\"password=\"|\"percentage\"\
+|\"pragma\"|\"preload\"|\"preserve\"|\"progress-bar\"|\"progress-fill\"|\"refresh\"|\"remain\"|\"section\"|\"sendin\"\
+|\"speed_economic\"|\"speed_gaming\"|\"speed_high\"|\"speed_normal\"|\"speed_very\"|\"starlink-logo\"\
+|\"status-btn\"|\"status-card\"|\"stylesheet\"|\"sub-title\"|\"submit\"|\"tabula\"|\"telephone=no\"|\"text/css\"\
+|\"text/javascript\"|\"theme-color\"|\"timeLeft\"|\"timeLeft2\"|\"top-message\"|\"unlimited\"|\"update\"\
+|\"updateStatus\"|\"url\(#mask_x1\)\"|\"url\(#mask_x2\)\"|\"usageProgress\"|\"usageText\"\
+|\"username\"|\"username=\"|\"usernameDisplay\"|\"usernames\"|\"valuee\"|\"viewport\"\
+|\"x-shader/x-fragment\"|\"x-shader/x-vertex\"|>\"\)};<|>connected:<|>document.write\(UpdateStatus\(\(update\)\)\);<\
+|>document.write\(checkSpeed\(\(speed\)\)\);<|>nameCard\(\);<\
 "
 }
 
@@ -402,7 +426,7 @@ _302parser_test_all(){
 
 
 #_302parser_test_all
-#_302parser_test_manually "$1"
+_302parser_test_manually "$1"
 #_302parser_parse_resources "$1"
 #_302parser_parse_login "$1"
 #_302parser_parse_auto "${@}"

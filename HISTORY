@@ -1,5 +1,9 @@
 
 
+Version 4.0-b6 (Build: 10-05-2026):
+  302-parser script:
+   1. improved the strings parser.
+
 Version 4.0-b5 (Build: 09-05-2026):
   302-parser script:
     1. added digits parser for better gid parsing.
