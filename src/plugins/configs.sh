@@ -45,7 +45,7 @@
 						_process_plugins()
 										{
 											echo "Installing device's identifiers spoofer..."
-											su -c 'cp "'${home_dir}'/plugins/identfiers-spoofer.sh" "/data/adb/post-fs-data.d/" && chmod 755 "/data/adb/post-fs-data.d/identfiers-spoofer.sh"'
+											su -c 'cp "'${home_dir}'/plugins/identifiers-spoofer.sh" "/data/adb/post-fs-data.d/" && chmod 755 "/data/adb/post-fs-data.d/identifiers-spoofer.sh"'
 										}
 
 unset home_dir
