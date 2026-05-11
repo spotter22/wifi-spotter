@@ -1,3 +1,13 @@
 debug/
 releases/
 tmp
+
+# secrets
+.env
+*.env
+
+# system folders
+__pycache__/
+.ipynb_checkpoints/
+.venv/
+venv/
