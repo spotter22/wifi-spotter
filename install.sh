@@ -4,7 +4,7 @@
 
 						_process_clean()
 										{
-											echo "cleanning previous releases..."
+											echo "cleaning previous releases..."
 											rm -f "${PREFIX}/bin/ws-uploader" "${PREFIX}/bin/ws-updater" "${PREFIX}/bin/sss" "${PREFIX}/bin/netspotter" "${PREFIX}/bin/ns-uploader" "${PREFIX}/bin/ws-merge" ~/.wsu.pid ~/.wsupdate.pid ~/.ns.pid ~/.wsg.pid ~/.wsr.pid &>/dev/null
 											rm -rf ~/.ws ~/.ws.pid ~/.wsc.pid ~/.wsm.pid "${PREFIX}/etc/m.jq" "${PREFIX}/bin/wifi-spotter-config" "${PREFIX}/bin/wifi-spotter-updater" &>/dev/null
 											rm -f "${home_dir}/logs/.wsc.pid" "${home_dir}/logs/.wsm.pid"
@@ -132,7 +132,7 @@
 													link="https://raw.githubusercontent.com/spotter22/wifi-spotter/refs/heads/main/LATEST"
 
 												if [ -s "${home_dir}/updates/update.tar.gz" ]; then
-													if [ "${1}" = "--slient" ]; then
+													if [ "${1}" = "--silent" ]; then
 														echo "testing tarball..."
 														tar -tf "${home_dir}/updates/update.tar.gz" &>/dev/null && return 0 \
 														|| rm -f "${home_dir}/updates/update.tar.gz"
@@ -191,7 +191,7 @@
 		commit="unknown"
 	if [ "${1}" = "--uninstall" ]; then
 			read -p "To continue uninstalling enter (Yes/y):" option
-		if [[ "${option}" =~ (Y/y) ]]; then
+		if [[ "${option}" =~ (Y|y) ]]; then
 			_process_storage || exit 1
 			rm -rf "${home_dir}"
 			echo "uninstalling completed !"
