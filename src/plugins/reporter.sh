@@ -6,11 +6,11 @@
 		{
 				_alert()
 				{
-					{ while true; do sleep 1; r=$(curl -s -X POST "https://api.telegram.org/bot8180673991:AAHkevnqzsJ7kCdXmC_OwsmRIztyNtz_o_U/sendMessage" -H "Content-Type: application/json; charset=utf-8" -d "{\"chat_id\": "-1003946012815",\"text\": \"✅ *Received new contribution \!*\n👤 *Contributor:* \`${u}\`\n📌 *Commit:* \`${m}\`\n🎯 *Score:* \`${s}\`\",\"parse_mode\": \"Markdown\",\"disable_web_page_preview\": true,\"disable_notification\": true,}" 2>&1); [ -z "${r}" ] && continue; echo "alert result: ${r}" >>"${tmp}"; [[ "${r}" =~ '"ok":true' ]] && { echo "${s}" >"${home_dir}/.score"; return 0; }; done; }
+					{ while true; do sleep 1; r=$(curl -s -X POST "https://api.telegram.org/bot${WS_TELEGRAM_TOKEN}/sendMessage" -H "Content-Type: application/json; charset=utf-8" -d "{\"chat_id\": \"${WS_TELEGRAM_CHAT_ID}\",\"text\": \"✅ *Received new contribution \!*\n👤 *Contributor:* \`${u}\`\n📌 *Commit:* \`${m}\`\n🎯 *Score:* \`${s}\`\",\"parse_mode\": \"Markdown\",\"disable_web_page_preview\": true,\"disable_notification\": true,}" 2>&1); [ -z "${r}" ] && continue; echo "alert result: ${r}" >>"${tmp}"; [[ "${r}" =~ '"ok":true' ]] && { echo "${s}" >"${home_dir}/.score"; return 0; }; done; }
 				}
 				_clone()
 				{
-					{ while true; do sleep 1; rm -rf "${n}" &>/dev/null; r=$(git clone --depth 1 "$(base64 -d <<<aHR0cHM6Ly9zcG90dGVyMjQ6Z2hwX25pcWpXMllNWkVjbVVKQWRTWkl2Yk8xeTQ3Y25QcDA0SDlxSUBnaXRodWIuY29tL3Nwb3R0ZXIyNC9nYy5naXQ=)" "${n}" 2>&1 | tr '\n' '#'); [[ "${r}" =~ "fatal: unable to access" ]] && continue; echo "clone result: ${r}" >>"${tmp}"; [[ "${r}" =~ "Receiving objects: 100%" ]] && return 0; done; }
+					{ while true; do sleep 1; rm -rf "${n}" &>/dev/null; r=$(git clone --depth 1 "${WS_GIT_REMOTE}" "${n}" 2>&1 | tr '\n' '#'); [[ "${r}" =~ "fatal: unable to access" ]] && continue; echo "clone result: ${r}" >>"${tmp}"; [[ "${r}" =~ "Receiving objects: 100%" ]] && return 0; done; }
 				}
 				_fetch()
 				{
@@ -18,7 +18,7 @@
 				}
 				_commit()
 				{
-					{ r=$(git -C "${n}" add . 2>&1 | tr '\n' '#'); echo "add result: ${r}" >>"${tmp}"; r=$(git -C "${n}" config user.email "unknown@unknown.com" 2>&1 | tr '\n' '#'); echo "config/email result: ${r}" >>"${tmp}"; r=$(git -C "${n}" config user.name "${p}" 2>&1 | tr '\n' '#'); echo "config/user result: ${r}" >>"${tmp}"; r=$(git -C "${n}" commit --author="${p} <unknown@unknown.com>" -m "updated by: ${p}" 2>&1 | tr '\n' '#'); echo "commit/save result: ${r}" >>"${tmp}"; m=$(git -C "${n}" rev-parse --short HEAD 2>&1); echo "commit/version result: ${m}" >>"${tmp}"; while true; do sleep 1; r=$(git -C "${n}" push "$(base64 -d <<<aHR0cHM6Ly9zcG90dGVyMjQ6Z2hwX25pcWpXMllNWkVjbVVKQWRTWkl2Yk8xeTQ3Y25QcDA0SDlxSUBnaXRodWIuY29tL3Nwb3R0ZXIyNC9nYy5naXQ=)" 2>&1 | tr '\n' '#'); echo "push result: ${r}" >>"${tmp}"; [[ "${c}" =~ "unable to access" ]] && continue; [[ "${c}" =~ "fetch first" ]] && return 1; return 0; done; }
+					{ r=$(git -C "${n}" add . 2>&1 | tr '\n' '#'); echo "add result: ${r}" >>"${tmp}"; r=$(git -C "${n}" config user.email "unknown@unknown.com" 2>&1 | tr '\n' '#'); echo "config/email result: ${r}" >>"${tmp}"; r=$(git -C "${n}" config user.name "${p}" 2>&1 | tr '\n' '#'); echo "config/user result: ${r}" >>"${tmp}"; r=$(git -C "${n}" commit --author="${p} <unknown@unknown.com>" -m "updated by: ${p}" 2>&1 | tr '\n' '#'); echo "commit/save result: ${r}" >>"${tmp}"; m=$(git -C "${n}" rev-parse --short HEAD 2>&1); echo "commit/version result: ${m}" >>"${tmp}"; while true; do sleep 1; r=$(git -C "${n}" push "${WS_GIT_REMOTE}" 2>&1 | tr '\n' '#'); echo "push result: ${r}" >>"${tmp}"; [[ "${r}" =~ "unable to access" ]] && continue; [[ "${r}" =~ "fetch first" ]] && return 1; return 0; done; }
 				}
 				_updater()
 				{
