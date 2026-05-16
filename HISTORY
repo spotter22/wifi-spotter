@@ -1,207 +1,363 @@
 
 
-Version 4.0-b7 (Build: 10-05-2026):
+Version 4.0-b8 (Build: 17-05-2026):
+
+  installer script:
+   1. some improvements.
+   2. removed net-tools from deps.
+
+  reporter script:
+   1. switched back to private hub.
+   2. some improvements.
+
+  connection-status script:
+   1. rewrote connect, disconnect and set address functions.
+
+  wifi-spotter script:
+   1. connect, disconnect and set addresss functions replaced with better implemented functions.
+   2. removed some unnecssary related code.
+   3. some improvements.
+
+  network reset function:
+   1. added alternative package name of captive-portal app.
+
+  wifi status functuon:
+   1. added quick wifi connect function.
+
   302-parser script:
-    1. typo removed debug break.
+   1. fixed an issue with some return codes.
+   2. fixed an issue were a private variable was made global instead.
+
+  network info parser:
+   1. fixed an issue were could not parse hotspot info with no internet connection.
+
+  network scan function:
+   1. fixed an issue were ipv6 scan mode keeps looping.
+
+  network mointor function:
+   1. added new option mointor ipv6 replies.
+
+  auto discovery mode:
+   1. switched scan mode from arp scan to ipv6 scan.
+
+  poster script:
+   1. added instant commit alerts on every release.
+   2. added new option for easier history file aligning.
+
+
+
+Version 4.0-b7 (Build: 10-05-2026):
+
+  302-parser script:
+   1. typo removed debug break.
+
+
 
 Version 4.0-b6 (Build: 10-05-2026):
+
   302-parser script:
-    1. improved the strings parser.
+   1. improved the strings parser.
+
+
 
 Version 4.0-b5 (Build: 09-05-2026):
+
   302-parser script:
-    1. added digits parser for better gid parsing.
+   1. added digits parser for better gid parsing.
+
   hotspot page parser:
-    1. added status page json parser for supported portals.
-    2. added status page filtering.
+   1. added status page json parser for supported portals.
+   2. added status page filtering.
+
   main function:
-    1. added trap cleaner for reducing requests pressure.
+   1. added trap cleaner for reducing requests pressure.
+
+
 
 Version 4.0-b4 (Build: 08-05-2026):
+
   network info parser function:
-     1. fixed error handling.
+   1. fixed error handling.
+
+
 
 Version 4.0-b3 (Build: 08-05-2026):
+
   updater function:
-      1. fixed an issue were multiple background instances was running.
+   1. fixed an issue were multiple background instances was running.
+
   installer script:
-      1. fixed an issue were installer uses the old downloaded update instead of latest version.
-      2. fixed an issue were installer hangs on initial termux upgrades.
+   1. fixed an issue were installer uses the old downloaded update instead of latest version.
+   2. fixed an issue were installer hangs on initial termux upgrades.
+
   302-parser script:
-      1. rewrote gid parser for more probability and easier maintaining.
-      2. added tests directory.
-      3. some other fixes and improvements for better error handling.
-      4. fixed an issue were parsing js-redirect fails on some pages.
+   1. rewrote gid parser for more probability and easier maintaining.
+   2. added tests directory.
+   3. some other fixes and improvements for better error handling.
+   4. fixed an issue were parsing js-redirect fails on some pages.
+
+
 
 Version 4.0-b2 (Build: 27-04-2026):
+
   installer script;
-      1. improved silent updater function.
+   1. improved silent updater function.
+
   reporter script:
-      1. some improvements.
+   1. some improvements.
+
+
 
 Version 4.0-b1 (Build: 27-04-2026):
+
   302-parser script:
-      1. some improvements.
+   1. some improvements.
+
+
 
 Version 4.0 (Build: 27-04-2026):
+
   302-parser script:
-      1. fixed some issues.
+   1. fixed some issues.
+
+
 
 Version 3.9 (Build: 27-04-2026):
-   main function:
-      1. added useragent variable.
-   network info parser function:
-      1. fixed an issue were script exits without printing info.
-   bruteforce function:
-      1. fixed an issue/typo were request page variable has become incorrect.
-   installer script:
-      1. improved silent updater.
+
+  main function:
+   1. added useragent variable.
+
+  network info parser function:
+   1. fixed an issue were script exits without printing info.
+
+  bruteforce function:
+   1. fixed an issue/typo were request page variable has become incorrect.
+
+  installer script:
+   1. improved silent updater.
+
+
 
 Version 3.8 (Build: 27-04-2026):
-   installer script:
-      1. fixed an issue/typo were logs always get removed when checking for updates.
-   hotspot page parser:
-      1. complete rewrite for improving and better handling errors.
+
+  installer script:
+   1. fixed an issue/typo were logs always get removed when checking for updates.
+
+  hotspot page parser:
+   1. complete rewrite for improving and better handling errors.
+
+
 
 Version 3.7 (Build: 26-04-2026):
-   installer script:
-      1. fixed an issue were deps installer were incorrectly running.
-      2. improved deps installer.
-      3. improved updater function.
-   database script:
-       1. improved error handling.
-    bruteforce function:
-       1. added an option to apply configurator when needed.
-       2. fixed some typo/issues.
-    reporter script:
-       1. improved handling errors.
-       2. some other improvements.
-    poster script:
-       1. added confirm dialog for adding new files.
-    new script connect module:
-       1. not ready yet, but development will continue.
+
+  installer script:
+   1. fixed an issue were deps installer were incorrectly running.
+   2. improved deps installer.
+   3. improved updater function.
+
+  database script:
+   1. improved error handling.
+
+  bruteforce function:
+   1. added an option to apply configurator when needed.
+   2. fixed some typo/issues.
+
+  reporter script:
+   1. improved handling errors.
+   2. some other improvements.
+
+  poster script:
+   1. added confirm dialog for adding new files.
+
+  new script connect module:
+   1. not ready yet, but development will continue.
+
+
 
 Version 3.6 (Build: 21-04-2026);
-   identifiers spoofer script:
-      1. added more idenitifers to spoof with.
-      2. added hostname spoofer.
-   database script:
-      1. fixed an issue were current database files is deleted.
-   login page parser:
-      1. fixed an issue were parser was not handling connection errors correctly.
-      2. improved error handling.
-   bruteforce function:
-       1. removed eligibility test.
-       2. improved address changing detection.
+
+  identifiers spoofer script:
+   1. added more idenitifers to spoof with.
+   2. added hostname spoofer.
+
+  database script:
+   1. fixed an issue were current database files is deleted.
+
+  login page parser:
+   1. fixed an issue were parser was not handling connection errors correctly.
+   2. improved error handling.
+
+  bruteforce function:
+   1. removed eligibility test.
+   2. improved address changing detection.
+
+
 
 Version 3.5 (Build: 20-04-2026):
-   installer script:
-      1. fixed an issue/typo were download function loops.
-   database script:
-      1. delete old database files after successful merge.
-    reporter script:
-      1. fixed an issue/typo were updater is applied incorrectly.
+
+  installer script:
+   1. fixed an issue/typo were download function loops.
+
+  database script:
+   1. delete old database files after successful merge.
+
+  reporter script:
+   1. fixed an issue/typo were updater is applied incorrectly.
+
+
 
 Version 3.4 (Build: 19-04-2026):
-   installer script:
-      1. improved downloading mechanism.
-   bruteforce function:
-      1. removed ghost requests (effects other users).
-      2. allowed breaking on whitelisted addresses.
-   connect function:
-      1. removed DHCP overload (effects other users).
-   main function:
-      1. moved background updater into reporter script.
-      
+
+  installer script:
+   1. improved downloading mechanism.
+
+  bruteforce function:
+   1. removed ghost requests (effects other users).
+   2. allowed breaking on whitelisted addresses.
+
+  connect function:
+   1. removed DHCP overload (effects other users).
+
+  main function:
+   1. moved background updater into reporter script.
+
+
+
 Version 3.3 (Build: 17-04-2026):
-   installer script:
-      1. complete rewrite for better handling and maintaining.
-      2. merged updater into installer script.
-   database merger plugin:
-      1. complete rewrite for better handling and improving.
-   logs reporter plugin:
-      1. refactored for better handling and improving.
-   main function:
-      1. removed license dialog.
+
+  installer script:
+   1. complete rewrite for better handling and maintaining.
+   2. merged updater into installer script.
+
+  database merger plugin:
+   1. complete rewrite for better handling and improving.
+
+  logs reporter plugin:
+   1. refactored for better handling and improving.
+
+  main function:
+   1. removed license dialog.
+
+
 
 Version 3.2 (Build: 14-04-2026):
-   reset network function:
-      1. added new reset method.
-      2. excluded protected networks.
-   updater function:
-      1. fixed update confirmation dialog.
+
+  reset network function:
+   1. added new reset method.
+   2. excluded protected networks.
+
+  updater function:
+   1. fixed update confirmation dialog.
+
+
 
 Version 3.2 (Build: 11-04-2026):
-   hotspot page parser function:
-      1. fixed an issue were parsed status page could be empty.
+
+  hotspot page parser function:
+   1. fixed an issue were parsed status page could be empty.
+
+
 
 Version 3.2 (Build: 10-04-2026):
-   database initial function:
-      1. improved integrity checker.
-      2. improved debug info.
-   main function:
-      1. improved storage directory checker.
-      2. improved logs directory checker.
-      3. improved code flow.
-      4. removed force updater option.
-   hotspot page parser function:
-      1. improved domain parser
-      2. added support for xml page.
-      3. added status page argument parser. 
-   scan function:
-      1. removed some unnecessary options.
-      2. improved scan options.
-   updater function:
-      1. improved offline updater.
-   new function:
-      1. convert link-local/ipv6 into mac address.
-      2. convert mac address into link-local/ipv6.
-      3. added ipv6 devices scanner.
-   iproute parser function:
-      1. improved route parser.
-      2. improved device address parser.
-      3. added route generator.
-   database clients function:
-      1. added new function clients validator.
-      2. added new fubction clients organizer.
+
+  database initial function:
+   1. improved integrity checker.
+   2. improved debug info.
+
+  main function:
+   1. improved storage directory checker.
+   2. improved logs directory checker.
+   3. improved code flow.
+   4. removed force updater option.
+
+  hotspot page parser function:
+   1. improved domain parser
+   2. added support for xml page.
+   3. added status page argument parser.
+
+  scan function:
+   1. removed some unnecessary options.
+   2. improved scan options.
+
+  updater function:
+   1. improved offline updater.
+
+  new function:
+   1. convert link-local/ipv6 into mac address.
+   2. convert mac address into link-local/ipv6.
+   3. added ipv6 devices scanner.
+
+  iproute parser function:
+   1. improved route parser.
+   2. improved device address parser.
+   3. added route generator.
+
+  database clients function:
+   1. added new function clients validator.
+   2. added new fubction clients organizer.
+
+
 
 Version 3.2 (Build: 24-03-2026):
-   connect mode function:
-      1. improved debug targert of network bruteforce mode.
-   configure utility:
-      1. improved configure utility for expecting profile owner and permission.
+
+  connect mode function:
+   1. improved debug targert of network bruteforce mode.
+
+  configure utility:
+   1. improved configure utility for expecting profile owner and permission.
+
+
 
 Version 3.2 (Build: 20-03-2026):
-   new configure utility:
-       1. added new utility for configuring supported methods per device.
-       2. added alternative method for setting mac address.
-       3. added alternative method for disconnecting from network.
+
+  new configure utility:
+   1. added new utility for configuring supported methods per device.
+   2. added alternative method for setting mac address.
+   3. added alternative method for disconnecting from network.
+
+
 
 Version 3.2 (Build: 18-03-2026):
-   main function:
-      1. fixed an error were the logs directory did not expected to be not exist.
+
+  main function:
+   1. fixed an error were the logs directory did not expected to be not exist.
+
+
 
 Version 3.2 (Build: 17-03-2026):
-   get clients function:
-      1. fixed an issue were values are inccorectly parsed and indexed.
-   main function:
-      1. changed auto force update into user choice update.
+
+  get clients function:
+   1. fixed an issue were values are inccorectly parsed and indexed.
+
+  main function:
+   1. changed auto force update into user choice update.
+
+
 
 Version 3.2 (Build: 05-03-2026):
-   connect mode function:
-      1. fixed an warnning of auto join while connecting to the network on some devices.
-      2. fixed an issue were auto join warnning message on some devices was unexpected.
-   db initial function:
-      1. fixed an error were db file was dangerously created.
-   get clients function:
-      1. an typo were requestes filter was incorrectly run.
-   clients discover function:
-      1. added new option (pin) into connect mode which allows to use selected GIDs in different area.
-      2. improved clients discovery to handel car driving and far networks.
-   main function:
-      1. secret options for changing the device address.
-   network reset function:
-      1. clear captive portal app data into reset the network option.
+
+  connect mode function:
+   1. fixed an warnning of auto join while connecting to the network on some devices.
+   2. fixed an issue were auto join warnning message on some devices was unexpected.
+
+  db initial function:
+   1. fixed an error were db file was dangerously created.
+
+  get clients function:
+   1. an typo were requestes filter was incorrectly run.
+
+  clients discover function:
+   1. added new option (pin) into connect mode which allows to use selected GIDs in different area.
+   2. improved clients discovery to handel car driving and far networks.
+
+  main function:
+   1. secret options for changing the device address.
+
+  network reset function:
+   1. clear captive portal app data into reset the network option.
+
+
 
 Version 1.0 (Build: 16-07-2024):
-      1. Initial release.
+   1. Initial public release.
+

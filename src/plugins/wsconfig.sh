@@ -13,25 +13,17 @@
 												echo "error configuring requires root access !"
 												exit 1
 											fi
-											if [ -z "$(iw dev wlan0 disconnect 2>&1)" ]; then
-												ws_disconnect_alt=0
-											elif [ -z "$(ifconfig wlan0 down; iw dev wlan0 disconnect 2>&1; ifconfig wlan0 up)" ]; then
-												ws_disconnect_alt=1
-											else
-												ws_disconnect_alt=2
-											fi
+												source "${home_dir/\.suroot/}/plugins/connection-status.sh" || return 1
+
+												_connection_interface_disconnect "0" && ws_disconnect_alt=0 || \
+													{ _connection_interface_disconnect "1" && ws_disconnect_alt=1 || ws_disconnect_alt=2; }
+												
 												sed -i '/ws_disconnect_alt/d' "${profile}"
 												echo "export ws_disconnect_alt=${ws_disconnect_alt}" >>"${profile}"
 
-											if [[ ! "$(macchanger -r wlan0 2>&1)" =~ (ERROR) ]]; then
-												ws_macchanger_alt=0
-											elif [[ ! "$(ifconfig wlan0 down; macchanger -r wlan0 2>&1; ifconfig wlan0 up)" =~ (ERROR) ]]; then
-												ws_macchanger_alt=1
-											else
-												echo "Unexpected error:"
-												macchanger -r wlan0
-												exit 1
-											fi
+												_connection_interface_setaddr "--random" "0" && ws_macchanger_alt=0 || \
+													{ _connection_interface_setaddr "--random" "1" && ws_macchanger_alt=1 || return 1; }
+
 												sed -i '/ws_macchanger_alt/d' "${profile}"
 												echo "export ws_macchanger_alt=${ws_macchanger_alt}" >>"${profile}"
 

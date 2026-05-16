@@ -8,7 +8,7 @@
 											rm -f "${PREFIX}/bin/ws-uploader" "${PREFIX}/bin/ws-updater" "${PREFIX}/bin/sss" "${PREFIX}/bin/netspotter" "${PREFIX}/bin/ns-uploader" "${PREFIX}/bin/ws-merge" ~/.wsu.pid ~/.wsupdate.pid ~/.ns.pid ~/.wsg.pid ~/.wsr.pid &>/dev/null
 											rm -rf ~/.ws ~/.ws.pid ~/.wsc.pid ~/.wsm.pid "${PREFIX}/etc/m.jq" "${PREFIX}/bin/wifi-spotter-config" "${PREFIX}/bin/wifi-spotter-updater" &>/dev/null
 											rm -f "${home_dir}/logs/.wsc.pid" "${home_dir}/logs/.wsm.pid"
-											rm -f "${home_dir}/logs/"*.log
+											rm -f "${home_dir}/logs/"*.log "${home_dir}/plugins/connect-module.sh"
 										}
 						_process_storage()
 										{
@@ -39,7 +39,7 @@
 													deps[0]="clang automake autoconf"
 													deps[1]="libnet libpcap"
 													deps[2]="git sudo play-audio jq wget curl"
-													deps[3]="iproute2 iptables iw arp-scan tcpdump tshark socat macchanger net-tools"
+													deps[3]="iproute2 iptables iw arp-scan tcpdump tshark socat macchanger"
 													echo "checking required packages..."
 												for p in ${deps[@]}; do
 														result=$(apt list --installed "${p}" 2>&1)
@@ -106,14 +106,14 @@
 											echo "setting wifi-spotter scripts..."
 											sed -i "s|home_dir=\"[^\"]*.|home_dir=\"${home_dir}\"|" \
 												"${home_dir}/wifi-spotter.sh" \
-												"${home_dir}/plugins/configs.sh" \
+												"${home_dir}/plugins/wsconfig.sh" \
 												"${home_dir}/plugins/updater.sh" \
 												"${home_dir}/plugins/reporter.sh" \
 												"${home_dir}/plugins/database-merger.sh" || exit 1
 
 											chmod +x \
 												"${home_dir}/wifi-spotter.sh" \
-												"${home_dir}/plugins/configs.sh" \
+												"${home_dir}/plugins/wsconfig.sh" \
 												"${home_dir}/plugins/updater.sh" \
 												"${home_dir}/plugins/reporter.sh" \
 												"${home_dir}/plugins/database-merger.sh" || exit 1
@@ -151,9 +151,13 @@
 													echo "Warning: current version matches latest version..."
 													[ "${1}" = "--silent" ] && { return 1; } || { break; }
 												else
-													echo "upgrading from ${version} into ${latest}"
-													version="${latest}"
-													break
+													if [ "${1}" = "--silent" ]; then
+														echo "upgrading from ${version} into ${latest}"
+													else
+														echo "preparing to install ${latest}"
+													fi
+														version="${latest}"
+														break
 												fi
 											done
 
@@ -191,7 +195,7 @@
 		commit="unknown"
 	if [ "${1}" = "--uninstall" ]; then
 			read -p "To continue uninstalling enter (Yes/y):" option
-		if [[ "${option}" =~ (Y/y) ]]; then
+		if [[ "${option}" =~ (Y|y) ]]; then
 			_process_storage || exit 1
 			rm -rf "${home_dir}"
 			echo "uninstalling completed !"

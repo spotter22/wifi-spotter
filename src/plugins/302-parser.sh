@@ -95,7 +95,7 @@ _302parser_parse_login(){
 
 _302parser_parse_resources(){
 	ret=0
-	local input x list
+	local input mode index x list
 	[ -n "${1}" ] && input="${1}" || input="./output.log"
 	[ -n "${2}" ] && mode="${2}" || mode="curl"
 	[ -n "${3}" ] && index="${2}" || unset index
@@ -344,13 +344,13 @@ _302parser_parse_auto(){
 	[ -n "${2}" ] && output="${2}" || output="./output.log"
 
 	echo -n>"${output}"
-	_302parser_request_send "${url}" "${output}" || return 1
+	_302parser_request_send "${url}" "${output}" || return ${?}
 		_302parser_parse_login "${output}"; err=${?}
 
 	if [ ${err} -eq 1 ]; then
 		:
 	elif [ ${err} -eq 2 ] || [ ${err} -eq 3 ]; then
-		_302parser_request_send "${host}:${port}/${page}" "${output}" || return 1
+		_302parser_request_send "${host}:${port}/${page}" "${output}" || return ${?}
 	elif [ ${err} -eq 4 ]; then
 		_302parser_parse_status "${output}" "${err}"
 		_302parser_parse_gid "${output}" "${err}"
@@ -364,7 +364,7 @@ _302parser_parse_auto(){
 	until [ ${_attempt} -ge 10 ]; do
 		_302parser_parse_resources "${output}" "curl"; result="${ret}"
 		[ "${result}" = "0" ] && break
-		_302parser_request_send "${host}:${port}/${result}" "${output}" || return 1
+		_302parser_request_send "${host}:${port}/${result}" "${output}" || return ${?}
 		_attempt=$((_attempt+1))
 	done
 
