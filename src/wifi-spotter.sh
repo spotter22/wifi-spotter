@@ -689,6 +689,7 @@
 																			[[ "${ssid}" =~ "'" ]] && ssid="${ssid//\'/\&squot;}"
 																			[[ "${ssid}" =~ '"' ]] && ssid="${ssid//\"/\&quot;}"
 																			[[ "${ssid}" =~ '\' ]] && ssid="${ssid//\\/\&bslash;}"
+																			ssid="\"${ssid}\""
 																		fi
 																			sec=$(echo "${u}" | grep -Po "Security type: \K[^,]*" | sed -n 1p)
 																		if [ "${sec}" = "0" ]; then
@@ -700,7 +701,7 @@
 																		elif [ "${sec}" = "3" ]; then
 																			sec="wpa3"
 																		else
-																			return 1
+																			return 2
 																		fi
 																			return 0
 																	elif [ "${mode}" = "is_disconnected" ] && [[ "${u}" =~ "Wifi is connected to" ]]; then
@@ -858,13 +859,14 @@
 																		return 1
 																	fi
 																	if [ "${sec}" = "open" ]; then
-																		_connection_interface_connect "${ssid}" "${sec}" &>>"${log_file}"; err=${?}
+																		_connection_interface_connect "${ssid:1:-1}" "${sec}" &>>"${log_file}"; err=${?}
 																	else
 																			i=0
 																		while read -r psk; do
-																			[ -z "${psk}" ] && continue
-																			_connection_interface_connect "${ssid}" "${sec} ${psk}" &>>"${log_file}" && { err=${?}; break; } || { err=${?}; continue; }
+																			[ -z "${psk}" ] && continue; i=$((i+1))
+																			_connection_interface_connect "${ssid:1:-1}" "${sec} ${psk}" &>>"${log_file}" && { err=${?}; break; } || { err=${?}; continue; }
 																		done< <(jq --arg s "${ssid:1:-1}" '.ws.psk.[$s]' "${db_file}" | sed '/\[/d; /\]/d; /null/d; s/\,//g; s/\"//g')
+																		[ ${i} -eq 0 ] && err=3
 																	fi
 																	if [ ${err} -eq 0 ]; then
 																		_echo "\t${color_success}Connection succedd: ${ssid}${color_reset}" 1
@@ -1220,7 +1222,7 @@
 																			_echo "\t_wificonnect_reset --> unexpected error: [error](${err}) [result](${log})" 0
 																		fi
 																			_echo "\t${color_tip}Clearing Captive-Portal apps...${color_reset}" 1
-																			su -c 'pm clear com.google.android.captiveportallogin; pm clear com.android.captiveportallogin; com.google.android.captiveportallogin2' 2>&1 >/dev/null
+																			su -c 'local list x; list="com.google.android.captiveportallogin com.android.captiveportallogin com.google.android.captiveportallogin2"; for x in ${list}; do pm clear "${x}" >/dev/null 2>&1 || echo "failed clearing: ${x}"; done'
 																			_echo "\t${color_success}Completed !${color_reset}" 1
 																}
 											_wificonnect_getpsk()
@@ -1293,14 +1295,16 @@
 																			fi
 																	done
 																}
-												local u x
+												local u x err
 												_source_plugin "${home_dir}/plugins/connection-status.sh" || return 1
 											if  [ "$1" = "quick_setaddr" ]; then
-												_wificonnect_status "get_wifi_info" || return 1
-												_wificonnect_status "is_disconnected"
+												_wificonnect_status "get_wifi_info"; err=${?}
 												_macchanger_set "${2}" || return 1
-												_wificonnect_connect "${ssid}" "${sec}" || return 1
-												return ${?}
+												if [ ${err} -eq 0 ]; then
+													_wificonnect_status "is_disconnected"
+													_wificonnect_connect "${ssid}" "${sec}" || return 1
+												fi
+												return ${err}
 											fi
 												_echo "- Startting connect mode:" 1
 											if  [ "$1" = "a" ]; then

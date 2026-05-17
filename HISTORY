@@ -1,5 +1,18 @@
 
 
+Version 4.0-b10 (Build: 17-05-2026):
+
+
+  wifi get status function:
+   1. fixed an issue were ssid conflicts.
+
+  wifi get psk function:
+   2. improved error handling.
+
+  wifi reset function:
+   1. rewrote for better handling.
+
+
 Version 4.0-b9 (Build: 17-05-2026):
 
   poster script:

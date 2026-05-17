@@ -29,16 +29,16 @@ _302parser_request_send(){
 	while read -r x; do
 		if [[ "${x}" =~ "Failed to connect to " ]]; then
 			echo "_302parser_request_send: error no connection (err: ${x})"
-			return 1
+			return 11
 		elif [[ "${x}" =~ "Could not resolve host: " ]]; then
 			echo "_302parser_request_send: error dns failed (err: ${x})"
-			return 2
+			return 12
 		elif [[ "${x}" =~ "timed out after " ]]; then
 			echo "_302parser_request_send: error response timed out (err: ${x})"
-			return 3
+			return 13
 		elif [[ "${x}" =~ "Recv failure: Software caused connection abort" ]]; then
 			echo "_302parser_request_send: error connection lost (err: ${x})"
-			return 4
+			return 14
 		fi
 	done< <(cat "${output}")
 
