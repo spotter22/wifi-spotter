@@ -1,5 +1,13 @@
 
 
+Version 4.0-b9 (Build: 17-05-2026):
+
+  poster script:
+   1. removed old linked channel.
+   2. added new channel for instant commit alert.
+
+
+
 Version 4.0-b8 (Build: 17-05-2026):
 
   installer script:
