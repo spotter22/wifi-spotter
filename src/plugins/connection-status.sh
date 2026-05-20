@@ -271,7 +271,7 @@ _connection_interface_connect(){
 
 	echo "_connection_interface_connect: using optimized info ssid: ${ssid} sec: ${sec}"
 
-	result=$(su -c 'local i; i=0; until ([ -n "$('${prefix}'/ip r)" ] || [ ${i} -ge 100 ]); do i=$((i+1)); echo "_connection_interface_connect: connecting into wifi attempt: ${i}"; '${prefix}'/cmd wifi connect-network '${ssid}' '${sec}' -d; done; [ ${i} -ge 100 ] && echo "ERROR" 2>&1' | tr '\n' '#')
+	result=$(su -c 'local i; i=0; until ([ -n "$('${prefix}'/ip n)" ] || [ ${i} -ge 100 ]); do i=$((i+1)); echo "_connection_interface_connect: connecting into wifi attempt: ${i}"; '${prefix}'/cmd wifi connect-network '${ssid}' '${sec}' -d; done; [ ${i} -ge 100 ] && echo "ERROR" 2>&1' | tr '\n' '#')
 
 	if [[ "${result}" =~ (ERROR) ]]; then
 		ret="_connection_interface_connect: error could not connect to network (ret: ${result})."
@@ -303,7 +303,7 @@ _connection_interface_disconnect(){
 		[ ${method} -eq 1 ] && \
 			{ _connection_interface_state "down" "${iface}" "${prefix}" && result="${ret}" || return 1; }
 
-		result+=$(su -c 'local i; i=0; until ([ -z "$('${prefix}'/ip r)" ] || [ ${i} -ge 10 ]); do i=$((i+1)); echo "_connection_interface_disconnect: disconnecting from wifi attempt: ${i}"; '${prefix}'/iw dev '${iface}' disconnect; done; [ ${i} -ge 10 ] && echo "ERROR" 2>&1' | tr '\n' '#')
+		result+=$(su -c 'local i; i=0; until ([ -z "$('${prefix}'/ip n)" ] || [ ${i} -ge 10 ]); do i=$((i+1)); echo "_connection_interface_disconnect: disconnecting from wifi attempt: ${i}"; '${prefix}'/iw dev '${iface}' disconnect; done; [ ${i} -ge 10 ] && echo "ERROR" 2>&1' | tr '\n' '#')
 
 		[ ${method} -eq 1 ] && \
 			{ _connection_interface_state "up" "${iface}" "${prefix}" && result+="${ret}" || return 1; }
@@ -331,9 +331,9 @@ _connection_interface_state(){
 	[ -z "${3}" ] && prefix="${PREFIX}/bin" || prefix="${3}"
 
 	if [ "${mode}" = "down" ]; then
-		result=$(su -c 'local i; i=0; until ([ -z "$('${prefix}'/ip r)" ] || [ ${i} -ge 3 ]); do i=$((i+1)); echo "_connection_interface_state: setting interface down attempt: ${i}"; '${prefix}'/ip link set dev '${iface}' down; done; [ ${i} -ge 3 ] && echo "ERROR" 2>&1' | tr '\n' '#')
+		result=$(su -c 'local i; i=0; until ([ -z "$('${prefix}'/ip link show dev '${iface}' | grep -F "UP")" ] || [ ${i} -ge 3 ]); do i=$((i+1)); echo "_connection_interface_state: setting interface down attempt: ${i}"; '${prefix}'/ip link set dev '${iface}' down; done; [ ${i} -ge 3 ] && echo "ERROR" 2>&1' | tr '\n' '#')
 	elif [ "${mode}" = "up" ]; then
-		result=$(su -c 'echo "_connection_interface_state: setting up interface: '${iface}'"; '${prefix}'/ip link set dev '${iface}' up 2>&1' | tr '\n' '#')
+		result=$(su -c 'local i; i=0; until ([ -n "$('${prefix}'/ip link show dev '${iface}' | grep -F "UP")" ] || [ ${i} -ge 3 ]); do i=$((i+1)); echo "_connection_interface_state: setting interface up attempt: ${i}"; '${prefix}'/ip link set dev '${iface}' up; done; [ ${i} -ge 3 ] && echo "ERROR" 2>&1' | tr '\n' '#')
 	else
 		echo "_connection_interface_state: error unknown mode is passed (mode: null)."
 		return 1

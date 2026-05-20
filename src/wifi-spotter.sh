@@ -1222,7 +1222,7 @@
 																			_echo "\t_wificonnect_reset --> unexpected error: [error](${err}) [result](${log})" 0
 																		fi
 																			_echo "\t${color_tip}Clearing Captive-Portal apps...${color_reset}" 1
-																			su -c 'local list x; list="com.google.android.captiveportallogin com.android.captiveportallogin com.google.android.captiveportallogin2"; for x in ${list}; do pm clear "${x}" >/dev/null 2>&1 || echo "failed clearing: ${x}"; done'
+																			su -c 'local list x; list="com.google.android.captiveportallogin com.android.captiveportallogin com.google.android.captiveportallogin2"; for x in ${list}; do '${prefix}'/pm clear "${x}" >/dev/null 2>&1 || echo "failed clearing: ${x}"; done'
 																			_echo "\t${color_success}Completed !${color_reset}" 1
 																}
 											_wificonnect_getpsk()

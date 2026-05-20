@@ -1,5 +1,17 @@
 
 
+Version 4.0-b11 (Build: 21-05-2026):
+
+
+  connection-status script:
+   1. fixed an issue were interface state function runs incorrectly.
+   2. fixed an issue were connect function runs incorrectly. 
+
+  network reset function:
+   1. fixed an issue were it fails to clear data while app exists. 
+
+
+
 Version 4.0-b10 (Build: 17-05-2026):
 
 
