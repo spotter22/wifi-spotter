@@ -16,13 +16,14 @@ _302parser_crawl_fetch(){
 
 
 _302parser_request_send(){
-	local url output useragent x
+	local url output timeout useragent x
 	[ -n "${1}" ] && url="${1}" || url="http://google.com"
 	[ -n "${2}" ] && output="${2}" || output="./output.log"
-	[ -n "${3}" ] && useragent="${3}" || useragent="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/60.0.3112.32 Safari/537.36"
+	[ -n "${3}" ] && timeout="-m${3}" || unset timeout
+	[ -n "${4}" ] && useragent="${3}" || useragent="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/60.0.3112.32 Safari/537.36"
 
 	echo "_302parser_request_send: sending request for: ${url}"
-	curl -svLA "${useragent}" "${url}" &>>"${output}"
+	curl ${timeout} -svLA "${useragent}" "${url}" &>>"${output}"
 	echo -e "\nEOF" >>"${output}" # fixes when last line has no \n
 
 	echo "_302parser_request_send: checking received response..."

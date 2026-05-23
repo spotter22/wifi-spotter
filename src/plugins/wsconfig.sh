@@ -37,10 +37,14 @@
 						_process_plugins()
 										{
 											echo "installing hostname-spoofer..."
-											su -c 'rm -f "/data/adb/post-fs-data.d/identfiers-spoofer.sh" "/data/adb/post-fs-data.d/useragent-spoofer.sh" 2>/dev/null; cp "'${home_dir}'/plugins/hostname-spoofer.sh" "/data/adb/post-fs-data.d/" && chmod 755 "/data/adb/post-fs-data.d/hostname-spoofer.sh"; /data/adb/post-fs-data.d/hostname-spoofer.sh'
+											su -c 'rm -f "/data/adb/post-fs-data.d/identfiers-spoofer.sh" "/data/adb/post-fs-data.d/useragent-spoofer.sh" 2>/dev/null; cp "'${home_dir}'/plugins/hostname-spoofer.sh" "/data/adb/post-fs-data.d/" && chmod 755 "/data/adb/post-fs-data.d/hostname-spoofer.sh" && /data/adb/post-fs-data.d/hostname-spoofer.sh'
 										}
 
-unset home_dir
-home_dir=/data/data/com.termux/files/home/wifi-spotter-root
-_process_tests || exit 1
-_process_plugins
+	unset home_dir
+	home_dir=/data/data/com.termux/files/home/wifi-spotter-root
+
+	if [ "${1}" = "--install-plugins" ]; then
+		_process_plugins
+	else
+		_process_tests || exit 1
+	fi

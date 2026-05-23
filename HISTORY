@@ -1,5 +1,21 @@
 
 
+Version 4.0-b13 (Build: 24-05-2026):
+
+
+  hostname-spoofer script:
+   1. fixed selinux permission issue on some devices.
+   2. some improvements.
+
+  wifi-spotter script:
+   1. fixed an issue were connect function was incorrectly used.
+   2. fixed an issue at bruteforce function were previous cookies causes conflict.
+   3. fixed an issue at scan function were it does not return the status correctly.
+   4. added macsposed auto state management for long term bruteforce testing.
+   5. added timeout on auto network discovery for faster scanning.
+
+
+
 Version 4.0-b12 (Build: 23-05-2026):
 
 

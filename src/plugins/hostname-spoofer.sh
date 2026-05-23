@@ -195,7 +195,7 @@ ZQL2115-olive-build-20200604214157 olive 9 Xiaomi olive
 "
 
 		i=0
-	for x in $(echo -e "${props}" | shuf | sed -n 1p); do
+	for x in $(echo -e "${props}" | /data/data/com.termux/files/usr/bin/shuf | sed -n 1p); do
 			i=$((i+1))
 		if [ ${i} -eq 1 ]; then
 			build="${x}"
@@ -211,26 +211,37 @@ ZQL2115-olive-build-20200604214157 olive 9 Xiaomi olive
 	return 0
 }
 
+
+_spoofer_set_prop(){
+
+	# Ref: https://github.com/topjohnwu/Magisk/pull/433
+	setenforce 0
+
+	# WebView (spoofs only dynamic values)
+	# e.g: Mozilla/5.0 (Linux; Android 16; Redmi Note 13 5G Build/QW2P.431870.000; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/122.0.6261.90 Mobile Safari/537.36
+	resetprop "ro.build.version.release" "${release}"
+	resetprop "ro.product.model" "${model}"
+	resetprop "ro.build.id" "${build}"
+
+	# CaptivePortal (some varint app can ignore it)
+	UA="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/60.0.3112.32 Safari/537.36"
+	settings put global captive_portal_user_agent "${UA}"
+	settings put system captive_portal_user_agent  "${UA}"
+
+	# Hostname (some systems does not allow to alter it)
+	settings put global device_name "${model}"
+
+	# Dalvik User-Agent
+	# can be only altered by hook or modified app
+
+	echo "spoofing props completed !"
+
+	setenforce 1
+	return 0
+}
+
+
 echo "startting props spoofer..."
-_spoofer_get_prop
-
-# WebView (spoofs only dynamic values)
-# e.g: Mozilla/5.0 (Linux; Android 16; Redmi Note 13 5G Build/QW2P.431870.000; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/122.0.6261.90 Mobile Safari/537.36
-resetprop "ro.build.version.release" "${release}"
-resetprop "ro.product.model" "${model}"
-resetprop "ro.build.id" "${build}"
-
-# CaptivePortal (some varint app can ignore it)
-UA="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/60.0.3112.32 Safari/537.36"
-settings put global captive_portal_user_agent "${UA}"
-settings put system captive_portal_user_agent  "${UA}"
-
-# Hostname (some systems does not allow to alter it)
-settings put global device_name "${model}"
-
-# Dalvik User-Agent
-# can be only altered by hook or modified app
-
-
-echo "spoofing props completed !"
+_spoofer_get_prop || exit 1
+_spoofer_set_prop || exit 1
 

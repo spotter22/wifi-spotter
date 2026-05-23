@@ -125,7 +125,7 @@
 											ln -fs "${home_dir}/wifi-spotter.sh" "${PREFIX}/bin/ws"
 
 											echo "startting wsconfig..."
-											sudo ${home_dir}/plugins/wsconfig.sh
+											sudo ${home_dir}/plugins/wsconfig.sh "--install-plugins"
 
 											echo "Installation completed !"
 										}

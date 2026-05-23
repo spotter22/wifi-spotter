@@ -279,6 +279,8 @@ _connection_interface_connect(){
 	# to sleep for like 3 or 5 seconds until network is connected otherwise executing `cmd wifi connect-network` again
 	# will result in canceling previous request which at the end will result in failling to connect into the wifi.
 	# 3. before breaking `ip neigh` return should not contain "INCOMPLETE" otherwise this will result in sudden wifi disconnection.
+	# 4. after setting new address some devices will disconnect from wifi within few seconds while some other devices will remain
+	# connected and this causes connect function to fail. make sure to disconnect before setting new address otherwise connect function can fail.
 
 	# Ref: https://unix.stackexchange.com/a/792827
 
