@@ -14,7 +14,7 @@
 										{
 												# startting from v3.3
 											if [ -z "${ws_dir}" ]; then
-												home_dir=~/wifi-spotter-root
+												home_dir=/data/data/com.termux/files/home/wifi-spotter-root
 											else
 												home_dir="${ws_dir}"
 											fi
@@ -123,6 +123,9 @@
 
 											echo "making link to wifi-spotter.sh..."
 											ln -fs "${home_dir}/wifi-spotter.sh" "${PREFIX}/bin/ws"
+
+											echo "startting wsconfig..."
+											sudo ${home_dir}/plugins/wsconfig.sh
 
 											echo "Installation completed !"
 										}

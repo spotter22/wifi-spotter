@@ -271,7 +271,18 @@ _connection_interface_connect(){
 
 	echo "_connection_interface_connect: using optimized info ssid: ${ssid} sec: ${sec}"
 
-	result=$(su -c 'local i; i=0; until ([ -n "$('${prefix}'/ip n)" ] || [ ${i} -ge 100 ]); do i=$((i+1)); echo "_connection_interface_connect: connecting into wifi attempt: ${i}"; '${prefix}'/cmd wifi connect-network '${ssid}' '${sec}' -d; done; [ ${i} -ge 100 ] && echo "ERROR" 2>&1' | tr '\n' '#')
+	# android notes:
+	# 1. `cmd wifi connect-network` on successful execute it will return either: "Connection initiated" or "null string"
+	# and in some devices it will return "autojoin setting skipped" which can indicate disabling autojoin (-d) has failed or
+	# autojoin has already been disabled for current reconnecting network.'
+	# 2. on some devices after successful execute of `cmd wifi connect-network` will require
+	# to sleep for like 3 or 5 seconds until network is connected otherwise executing `cmd wifi connect-network` again
+	# will result in canceling previous request which at the end will result in failling to connect into the wifi.
+	# 3. before breaking `ip neigh` return should not contain "INCOMPLETE" otherwise this will result in sudden wifi disconnection.
+
+	# Ref: https://unix.stackexchange.com/a/792827
+
+	result=$(su -c 'local i c t wait; i=0; t=0; until ([ -n "$('${prefix}'/ip n | grep -E "REACHABLE|STALE|DELAY|PROBE|PERMANENT")" ] || [ ${i} -gt 3 ]); do [ "${wait}" = "yes" ] && { c=$((c+1)); [ ${c} -ge 30 ] && wait="no"; t=$((t+1)); sleep 0.1; continue; } || { c=0; }; echo "_connection_interface_connect: connecting into wifi attempt: ${i}"; '${prefix}'/cmd wifi connect-network '${ssid}' '${sec}' -d; wait="yes"; i=$((i+1)); done; [ ${i} -gt 3 ] && echo "ERROR"; echo "finished with: $((t/10)) seconds" 2>&1' | tr '\n' '#')
 
 	if [[ "${result}" =~ (ERROR) ]]; then
 		ret="_connection_interface_connect: error could not connect to network (ret: ${result})."

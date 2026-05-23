@@ -36,11 +36,11 @@
 										}
 						_process_plugins()
 										{
-											echo "Installing device's identifiers spoofer..."
-											su -c 'cp "'${home_dir}'/plugins/identfiers-spoofer.sh" "/data/adb/post-fs-data.d/" && chmod 755 "/data/adb/post-fs-data.d/identfiers-spoofer.sh"'
+											echo "installing hostname-spoofer..."
+											su -c 'rm -f "/data/adb/post-fs-data.d/identfiers-spoofer.sh" "/data/adb/post-fs-data.d/useragent-spoofer.sh" 2>/dev/null; cp "'${home_dir}'/plugins/hostname-spoofer.sh" "/data/adb/post-fs-data.d/" && chmod 755 "/data/adb/post-fs-data.d/hostname-spoofer.sh"; /data/adb/post-fs-data.d/hostname-spoofer.sh'
 										}
 
 unset home_dir
-home_dir=~/wifi-spotter-root
+home_dir=/data/data/com.termux/files/home/wifi-spotter-root
 _process_tests || exit 1
-#_process_plugins
+_process_plugins

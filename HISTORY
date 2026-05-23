@@ -1,5 +1,22 @@
 
 
+Version 4.0-b12 (Build: 23-05-2026):
+
+
+  install script:
+   1. added absolutely path for fixing hostname-spoofer path issues.
+   2. currently wsconfig will be enforced to fix issues with connect function.
+   3. restored auto updater function.
+
+  connection-status script:
+   1. fixed an issue were connect function had compatibility issue on some devices.
+   2. improved connect function.
+
+  hostname-spoofer script:
+   1. rewrote for better handling and more stability.
+
+
+
 Version 4.0-b11 (Build: 21-05-2026):
 
 

@@ -29,9 +29,8 @@
 				}
 				_updater()
 				{
-					return 0
 					kill -9 "$(cat "${home_dir}/logs/updater.pid")" 2>/dev/null
-					nohup ${home_dir}/plugins/updater.sh --silent-update &>/dev/null &
+					nohup ${home_dir}/plugins/updater.sh --silent-update &>>${tmp}" &
 					echo "${!}" >"${home_dir}/logs/updater.pid"; disown
 				}
 			local z u p c r n d s tmp t1 t2
