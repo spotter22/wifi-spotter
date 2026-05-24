@@ -1,5 +1,16 @@
 
 
+Version 4.0-b15 (Build: 24-05-2026):
+
+
+  302-parser script:
+   1. fixed timeout arguments.
+
+  poster script:
+   1. improved return status on commit changes poster.
+
+
+
 Version 4.0-b14 (Build: 24-05-2026):
 
 

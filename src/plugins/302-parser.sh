@@ -340,18 +340,19 @@ _302parser_crawl_auto(){
 
 
 _302parser_parse_auto(){
-	local url output output_dir err result _attempt
+	local url output timeout output_dir err result _attempt
 	[ -n "${1}" ] && url="${1}" || url="http://google.com"
 	[ -n "${2}" ] && output="${2}" || output="./output.log"
+	[ -n "${3}" ] && timeout="-m${3}" || unset timeout
 
 	echo -n>"${output}"
-	_302parser_request_send "${url}" "${output}" || return ${?}
+	_302parser_request_send "${url}" "${output}" "${timeout}" || return ${?}
 		_302parser_parse_login "${output}"; err=${?}
 
 	if [ ${err} -eq 1 ]; then
 		:
 	elif [ ${err} -eq 2 ] || [ ${err} -eq 3 ]; then
-		_302parser_request_send "${host}:${port}/${page}" "${output}" || return ${?}
+		_302parser_request_send "${host}:${port}/${page}" "${output}" "${timeout}" || return ${?}
 	elif [ ${err} -eq 4 ]; then
 		_302parser_parse_status "${output}" "${err}"
 		_302parser_parse_gid "${output}" "${err}"
@@ -365,7 +366,7 @@ _302parser_parse_auto(){
 	until [ ${_attempt} -ge 10 ]; do
 		_302parser_parse_resources "${output}" "curl"; result="${ret}"
 		[ "${result}" = "0" ] && break
-		_302parser_request_send "${host}:${port}/${result}" "${output}" || return ${?}
+		_302parser_request_send "${host}:${port}/${result}" "${output}" "${timeout}" || return ${?}
 		_attempt=$((_attempt+1))
 	done
 
