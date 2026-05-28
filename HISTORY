@@ -1,5 +1,23 @@
 
 
+Version 4.0-b16 (Build: 28-05-2026):
+
+
+  wifi-spotter script:
+   1. rewrote some functions for selinux complaint.
+   2. improved reset function for faster processing.
+   3. fixed an issue were a address starts with a odd number
+         at first octet causes setting address to fail on some devices.
+   4. fixed an issue were gid was unnecessarily getting removed.
+
+  hostname-spoofer script:
+   1. reconstructed for making it work between reboots and on invokes.
+
+  installer script:
+   1. improved silent updater function.
+
+
+
 Version 4.0-b15 (Build: 24-05-2026):
 
 

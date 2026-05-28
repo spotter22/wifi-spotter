@@ -27,6 +27,12 @@
 												sed -i '/ws_macchanger_alt/d' "${profile}"
 												echo "export ws_macchanger_alt=${ws_macchanger_alt}" >>"${profile}"
 
+												_connection_interface_setaddr "11:11:11:11:11:11" "${ws_macchanger_alt}" && ws_interface_allows="odd" || \
+													{ ws_interface_allows="even"; }
+
+												sed -i '/ws_interface_allows/d' "${profile}"
+												echo "export ws_interface_allows=\"${ws_interface_allows}\"" >>"${profile}"
+
 												source "${profile}"
 												chmod 600 "${profile}"
 												chown --reference="${home}" "${profile}"
@@ -37,7 +43,8 @@
 						_process_plugins()
 										{
 											echo "installing hostname-spoofer..."
-											su -c 'rm -f "/data/adb/post-fs-data.d/identfiers-spoofer.sh" "/data/adb/post-fs-data.d/useragent-spoofer.sh" 2>/dev/null; cp "'${home_dir}'/plugins/hostname-spoofer.sh" "/data/adb/post-fs-data.d/" && chmod 755 "/data/adb/post-fs-data.d/hostname-spoofer.sh" && /data/adb/post-fs-data.d/hostname-spoofer.sh'
+											su -c 'rm -f "/data/adb/post-fs-data.d/identfiers-spoofer.sh" "/data/adb/post-fs-data.d/useragent-spoofer.sh" "/data/adb/post-fs-data.d/hostname-spoofer.sh" 2>/dev/null; cp "'${home_dir}'/plugins/hostname-spoofer.sh" "/data/adb/service.d/" && chmod 755 "/data/adb/service.d/hostname-spoofer.sh" && /data/adb/service.d/hostname-spoofer.sh'
+											return 0
 										}
 
 	unset home_dir

@@ -49,6 +49,7 @@ _release(){
 	gh release create "${version}" --title "${version}" --notes "revision: ${version}"
 	echo "uploading release ..."
 	gh release upload "${version}" "./releases/wifi-spotter-${version}.tar.gz"
+	gh release upload --clobber "LATEST" "./LATEST"
 }
 
 

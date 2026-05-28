@@ -1,10 +1,19 @@
 # magisk post script
 
+export ASH_STANDALONE=1
+
 _spoofer_get_prop(){
-	model=0; release=0; build=0;
-	local props
+	model=0; release=0; build=0; UA=0
+	local i props
 
 	echo "getting valid props..."
+	UA="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/60.0.3112.32 Safari/537.36"
+
+	if [ "$(shuf -e "test")" != "test" ]; then
+		unset mode release build
+		echo "error: can not execute shuf utility."
+		return 1
+	fi
 
 	props="\
 00CN_1_270 SG1 7.1.1 SHARP SG1 
@@ -195,7 +204,7 @@ ZQL2115-olive-build-20200604214157 olive 9 Xiaomi olive
 "
 
 		i=0
-	for x in $(echo -e "${props}" | /data/data/com.termux/files/usr/bin/shuf | sed -n 1p); do
+	for x in $(echo -e "${props}" | shuf | sed -n 1p); do
 			i=$((i+1))
 		if [ ${i} -eq 1 ]; then
 			build="${x}"
@@ -214,8 +223,17 @@ ZQL2115-olive-build-20200604214157 olive 9 Xiaomi olive
 
 _spoofer_set_prop(){
 
-	# Ref: https://github.com/topjohnwu/Magisk/pull/433
-	setenforce 0
+
+	# CaptivePortal (some varint app can ignore it)
+	echo "settings put global captive_portal_user_agent \"${UA}\"" | su -
+	echo "settings put system captive_portal_user_agent  \"${UA}\"" | su -
+
+	# Hostname (some systems does not allow to alter it)
+	echo "settings put global device_name \"${model}\"" | su -
+	echo "settings put secure bluetooth_name \"${model}\"" | su -
+
+	# Dalvik User-Agent
+	# can be only altered by hook or modified app
 
 	# WebView (spoofs only dynamic values)
 	# e.g: Mozilla/5.0 (Linux; Android 16; Redmi Note 13 5G Build/QW2P.431870.000; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/122.0.6261.90 Mobile Safari/537.36
@@ -223,25 +241,33 @@ _spoofer_set_prop(){
 	resetprop "ro.product.model" "${model}"
 	resetprop "ro.build.id" "${build}"
 
-	# CaptivePortal (some varint app can ignore it)
-	UA="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/60.0.3112.32 Safari/537.36"
-	settings put global captive_portal_user_agent "${UA}"
-	settings put system captive_portal_user_agent  "${UA}"
-
-	# Hostname (some systems does not allow to alter it)
-	settings put global device_name "${model}"
-
-	# Dalvik User-Agent
-	# can be only altered by hook or modified app
-
 	echo "spoofing props completed !"
 
-	setenforce 1
 	return 0
 }
 
 
-echo "startting props spoofer..."
-_spoofer_get_prop || exit 1
-_spoofer_set_prop || exit 1
+_spoofer_apply_safely(){
+		local i; i=0
+
+		echo "startting props spoofer..."
+	until ([ ${i} -gt 180 ] || [ -z "$(settings get global "device_name" 2>&1 | grep -F "cmd: Can't find service:")" ]); do
+		i=$((i+1)); echo "error: settings service not ready yet (${i})."
+		sleep 1
+	done
+
+	if [ ${i} -le 180 ]; then
+		_spoofer_get_prop
+		_spoofer_set_prop
+		echo "hostname-spoofer succedd within: ${i} seconds."
+		return 0
+	else
+		echo "error: hostname-spoofer ended with errors."
+		return 1
+	fi
+
+}
+
+
+_spoofer_apply_safely 
 

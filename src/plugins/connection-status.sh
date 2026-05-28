@@ -378,6 +378,12 @@ _connection_interface_setaddr(){
 		method=1
 	fi
 
+		# some interfaces does not allow setting odd number at first octet.
+	#if [[ "${addr:0:2}" =~ (1|3|5|7|9|B|D|F) ]]; then
+		#echo "_connection_interface_setaddr: warning skipping since first octet contains odd number: ${addr}"
+		#return 1
+	#fi
+
 	[ ${method} -eq 1 ] && \
 		{ _connection_interface_state "down" "${iface}" "${prefix}" || return 1; }
 

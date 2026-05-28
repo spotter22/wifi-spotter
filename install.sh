@@ -133,6 +133,7 @@
 										{
 													local link latest
 													link="https://raw.githubusercontent.com/spotter22/wifi-spotter/refs/heads/main/LATEST"
+													link_alt="https://github.com/spotter22/wifi-spotter/releases/download/LATEST/LATEST"
 
 												if [ -s "${home_dir}/updates/update.tar.gz" ]; then
 													if [ "${1}" = "--slient" ]; then
@@ -147,6 +148,7 @@
 													echo "getting latest version info..."
 											while true; do
 													latest=$(curl -sL "${link}" 2>/dev/null)
+													[ -z "${latest}" ] && latest=$(curl -sL "${link_alt}" 2>/dev/null)
 												if [ -z "${latest}" ]; then
 													echo "Error: could not obtain version info"
 													[ "${1}" = "--silent" ] && { sleep 3; continue; } || { return 1; }

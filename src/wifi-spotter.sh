@@ -306,7 +306,7 @@
 												db_filename="wsdb"
 												db_file="${home_dir}/${db_filename}.json"
 												log_file="${home_dir}/logs/ws.log"
-												full_date=($(date "+%s %d%m%y date: %d-%m-%Y time: %H:%M:%S"))
+												full_date=($(date "+%y%m%d%H%M%S %d%m%y date: %d-%m-%Y time: %H:%M:%S"))
 												hum_date="${full_date[@]:2}"
 												bot_date="${full_date[0]}"
 												obf_date="${full_date[1]}"
@@ -336,7 +336,7 @@
 													echo -e "${color_success}New version available !${color_reset}"
 													echo -ne "${color_warn}Do you want to update now (y/n)?${color_reset}"
 													read confirm_update
-												if [[ "${confirm_update}" =~ (Y|y) ]]; then
+												if [[ "${confirm_update}" =~ (N|n) ]]; then
 													export ws_update="yes"
 													${home_dir}/plugins/updater.sh --silent-update
 													return 0
@@ -1041,7 +1041,7 @@
 																		exclude="00:00:00 ff:ff:ff 00:07:89 00:30:4c 00:e0:4c 18:e8:29 1c:3b:f3 24:5a:4c 24:a4:3c 28:87:ba 3c:84:6a 40:a5:ef 48:22:54 60:29:d5 68:72:51 68:ff:7b 78:8a:20 80:2a:a8 88:3c:1c 9c:a2:f4 ac:15:a2 b4:a9:4f b4:fb:e4 c0:c9:e3 e4:38:83 f0:9f:c2 f4:92:bf f4:e2:c6"
 																		prev_clients=$(jq '.ws.bssid.['$list'].["admins","tclients"]' "${db_file}" | sed '/\[/d; /\]/d; /null/d; s/[,\"]//g' | sort | uniq | tr "\n" " ")
 																	while read y; do
-																		[[ "${exclude}" =~ "${y:0:8}" ]] || ([ -f "${home_dir}/logs/creds_${obf_date}.log" ] && [[ "${prev_clients,,}" =~ "${y,,}" ]]) && { i[4]=$((i[4]+1)); continue; }
+																		[[ "${exclude}" =~ "${y:0:8}" ]] || ([ "${ws_interface_allows}" = "even" ] && [[ "${y:0:2}" =~ (1|3|5|7|9|B|D|F) ]]) || ([ -f "${home_dir}/logs/creds_${obf_date}.log" ] && [[ "${prev_clients,,}" =~ "${y,,}" ]]) && { i[4]=$((i[4]+1)); continue; }
 																		reqs_list+=" ${y}"
 																		i[5]=$((i[5]+1))
 																	done< <(jq '.ws.bssid.['$list'].clients' "${db_file}" | sed '/\[/d; /\]/d; /null/d; s/[,\"]//g' | sort | uniq | shuf)
@@ -1206,12 +1206,12 @@
 																}
 											_wificonnect_clear()
 																{
-																	su -c 'setenforce 0; local list x; list="com.google.android.captiveportallogin com.android.captiveportallogin com.google.android.captiveportallogin2"; for x in ${list}; do '${prefix}'/pm clear "${x}" >/dev/null 2>&1 || echo "failed clearing: ${x}"; done; setenforce 1'
+																	su -c 'local x list; list="com.google.android.captiveportallogin com.android.captiveportallogin com.google.android.captiveportallogin2"; for x in ${list}; do echo "pm clear ${x}" | su - >/dev/null 2>&1 || echo "failed clearing: ${x}"; done'
 																}
 											_wificonnect_reset()
 																{
 																	_echo "\t${color_tip}Resetting network settings...${color_reset}" 1
-																	su -c 'local x list; list=$(cmd wifi list-networks | grep -F "open" | awk '\''{print $1}'\'' | tr "\n" " "); for x in ${list}; do echo "removing network: ${x}"; cmd wifi forget-network "${x}"; done'
+																	su -c 'local i x y z list; i=0; list="$(echo "cmd wifi list-networks" | su - | grep -F "open" | awk '\''{print $1}'\'' | tr "\n" " ") EOF"; for x in ${list}; do i=$((i+1)); [ "${x}" != "EOF" ] && { y+=" ${x}"; z+="cmd wifi forget-network ${x}; "; }; ([ ${i} -ge 10 ] || [ "${x}" = "EOF" ]) && { [ -z "${y}" ] && continue; echo "removing networks: ${y}"; echo "${z}" | su - >/dev/null; } || { continue; }; done'
 
 																	_wificonnect_clear
 																	return 0
