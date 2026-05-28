@@ -336,7 +336,7 @@
 													echo -e "${color_success}New version available !${color_reset}"
 													echo -ne "${color_warn}Do you want to update now (y/n)?${color_reset}"
 													read confirm_update
-												if [[ "${confirm_update}" =~ (N|n) ]]; then
+												if ([ -z "${confirm_update}" ] || [[ "${confirm_update}" =~ (Y|y) ]]); then
 													export ws_update="yes"
 													${home_dir}/plugins/updater.sh --silent-update
 													return 0
