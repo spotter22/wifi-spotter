@@ -11,7 +11,7 @@
 											msg1+="Parameters:\n"
 											msg1+="   -i, [ <interface> ]\n   -c, [ <connect mode> ]\n   -s, [ <scan mode> ]\n   -m, [ <monitor mode> ]\n"
 											msg1+="   -p, [ <parse mode> ]\n   -h, [ <show help> ]\n   -g, [ <merge db> ]\n   -v, [ <version info> ]\n"
-											msg1+="Examples:\n   wifi-spotter -s1\n   wifi-spotter -p somefile.pcap\n   wifi-spotter -h scan\n   wifi-spotter -h all"
+											msg1+="Examples:\n   wifi-spotter xx:xx:xx:xx:xx:xx\n   wifi-spotter -p somefile.pcap\n   wifi-spotter -s1\n   wifi-spotter -h scan\n   wifi-spotter -h all"
 
 											msg2="Available Network scan options:\n"
 											msg2+="   1, Scan with default route (recommended)\n"
@@ -72,6 +72,7 @@
 																		fi
 																			hum_date=$(date "+date: %d-%m-%Y time: %H:%M:%S"); log+="WIFI-Spotter has ended (${hum_date}).\n\n\n"; echo -e "$log" >>"${log_file}"
 																	} &
+																	kill -9 "$(ps -ef | awk '{print $2" "$9}' | grep -E "${home_dir}/plugins/reporter.sh|${home_dir}/plugins/updater.sh" | awk '{print $1}' | tr '\n' ' ')" 2>/dev/null
 																	{ x=$(cat "${home_dir}/logs/reporter.pid" 2>/dev/null); kill -9 "${x}" 2>/dev/null; }
 																	nohup ${home_dir}/plugins/reporter.sh &>/dev/null &
 																	echo "${!}">"${home_dir}/logs/reporter.pid"; disown
@@ -328,8 +329,6 @@
 													?) mode="usage"; break;;
 												esac
 											done
-												# trap cleanup
-												kill -9 "$(ps -ef | awk '{print $2" "$9}' | grep -E "${home_dir}/plugins/reporter.sh|${home_dir}/plugins/updater.sh" | awk '{print $1}' | tr '\n' ' ')" 2>/dev/null
 
 												# updater
 											if [ -s "${home_dir}/updates/update.tar.gz" ]; then
@@ -342,7 +341,13 @@
 													return 0
 												fi
 											fi
+
 												# environment check
+											if [ -s "${home_dir}/logs/_init_env.log" ] && [ -z "${ws_disconnect_alt}" ]; then
+												echo -e "error: restarting termux is required\nyou can instead try: source ~/.profile"
+												return 1
+											fi
+
 											if [ "$(id -u)" = "0" ]; then
 												_echo "- Error not allowed to run with root\nTip: Try again without sudo" 1
 												return 1
@@ -392,6 +397,8 @@
 												_process_networkinfo || return 1
 												_process_tcpdump "$mointor_option"
 											fi
+
+												# trap cleanup
 												_trap_cleanup
 										}
 						_process_parse()
@@ -1058,7 +1065,7 @@
 																}
 											_wificonnect_bruteforce()
 																{
-																	local c x y t n r cooldown curr_addr macsposed_state
+																	local c x y t n r cooldown curr_addr
 																			mode="auto"
 																			_wificonnect_select || return 1
 																		if [ -z "${ws_disconnect_alt}" ] || [ -z "${ws_macchanger_alt}" ]; then
@@ -1094,13 +1101,13 @@
 																			play-audio "$home_dir/sfx/notification_error.m4a" &
 																			break
 																		elif [ "${x}" != "${curr_addr}" ]; then
-																			sudo pm enable "com.berdik.macsposed"
+																			_wificonnect_macsposed "--enable"
 																			_echo "\t${color_error}Error request mismatch: ${curr_addr}${color_reset}\n\t${color_tip}Tip: Battery saver killed MACsposed !${color_reset}" 1
 																			_echo "\t\t_wificonnect_bruteforce --> error requested and current address does not match: [current_addr](${curr_addr}) [request_addr](${x})" 0
 																			play-audio "$home_dir/sfx/notification_error.m4a" &
 																			break
 																		else
-																			[ -z "${macsposed_state}" ] && { macsposed_state="1"; sudo pm disable "com.berdik.macsposed"; }
+																			_wificonnect_macsposed "--disable"
 																			cooldown=0
 																			curl -vsLA "${useragent}" "${host}:${port}/${status}" >"${home_dir}/logs/tmp" 2>"${home_dir}/logs/err"
 																			c=$(cat "${home_dir}/logs/err" | tr '\t\r\n*' '#')
@@ -1174,6 +1181,28 @@
 																		i=$((i+1))
 																	done
 																}
+											_wificonnect_macsposed()
+																{
+
+																	if [ -n "${_STATE_MACSPOSED}" ]; then
+																		return 0
+																	elif [ "${ws_auto_macsposed}" = "no" ]; then
+																		return 0
+																	elif [ "${1}" = "--enable" ]; then
+																		sudo pm enable "com.berdik.macsposed"
+																	elif [ "${1}" = "--disable" ]; then
+																			local x
+																			_STATE_MACSPOSED="1"
+																			sudo pm disable "com.berdik.macsposed"
+																		if [ -s "${home_dir}/logs/_init_macsposed_persist.log" ]; then
+																			_echo "Initializing macsposed-persist..." 1
+																			su -c 'local x; echo "cmd wifi set-wifi-enabled disabled" | su -; sleep 3; echo "cmd wifi set-wifi-enabled enabled" | su -; sleep 3; x=$('${prefix}'/iw dev '${iface}' info 2>&1 | '${prefix}'/grep -Po '\''addr \K.*'\''); sed -i "s|addr=.*|addr=\"${x}\"|" "/data/adb/service.d/macsposed-persist.sh"'
+																			echo -n>"${home_dir}/logs/_init_macsposed_persist.log"
+																		fi
+																	else
+																		echo "_wificonnect_macsposed: unknown option: ${1}"
+																	fi
+																}
 											_wificonnect_test()
 																{
 																		local result x
@@ -1181,12 +1210,6 @@
 																		_wificonnect_select || return 1
 																			_echo "- Starting comptiablity checker..." 1
 																				sudo "${home_dir}/plugins/wsconfig.sh"
-																				_wificonnect_status "is_disconnected" || return 1
-																			_wificonnect_connect "${ssid}" "${sec}" "${bssid}" || \
-																									{ 
-																										play-audio "$home_dir/sfx/notification_error.m4a" &
-																										return 1
-																									}
 																				_wificonnect_status "is_disconnected" || return 1
 																					_macchanger_set "--random"; result="${ret}" || return 1
 																						_wificonnect_connect "${ssid}" "${sec}" "${bssid}" || \
@@ -1196,6 +1219,7 @@
 																									}
 																		x=$(su -c ''${prefix}'/iw dev '${iface}' info 2>&1 | '${prefix}'/grep -Po "addr \K.*"')
 																	if [ "${x}" = "${result}" ]; then
+																		_wificonnect_macsposed "--disable"
 																		_echo "\t${color_success}Eligibility test passed !${color_reset}" 1
 																		return 0
 																	else
@@ -1206,14 +1230,19 @@
 																}
 											_wificonnect_clear()
 																{
-																	su -c 'local x list; list="com.google.android.captiveportallogin com.android.captiveportallogin com.google.android.captiveportallogin2"; for x in ${list}; do echo "pm clear ${x}" | su - >/dev/null 2>&1 || echo "failed clearing: ${x}"; done'
+																	if [ -n "${ws_captiveportal_alt}" ]; then
+																		_echo "\t${color_tip}Clearing Captive-Portal's cookies...${color_reset}" 1
+																		su -c 'local x list; list="'${ws_captiveportal_alt}'"; for x in ${list}; do echo "pm clear ${x}" | su - >/dev/null 2>&1 || echo "failed clearing: ${x}"; done'
+																	fi
 																}
 											_wificonnect_reset()
 																{
-																	_echo "\t${color_tip}Resetting network settings...${color_reset}" 1
-																	su -c 'local i x y z list; i=0; list="$(echo "cmd wifi list-networks" | su - | grep -F "open" | awk '\''{print $1}'\'' | tr "\n" " ") EOF"; for x in ${list}; do i=$((i+1)); [ "${x}" != "EOF" ] && { y+=" ${x}"; z+="cmd wifi forget-network ${x}; "; }; ([ ${i} -ge 10 ] || [ "${x}" = "EOF" ]) && { [ -z "${y}" ] && continue; echo "removing networks: ${y}"; echo "${z}" | su - >/dev/null; } || { continue; }; done'
+																	_echo "- Resetting network settings:" 1
+																	_echo "\t${color_tip}Removing saved networks...${color_reset}" 1
+																	su -c 'local i x y z list; i=0; list="$(echo "cmd wifi list-networks" | su - | grep -F "open" | awk '\''{print $1}'\'' | tr "\n" " ") EOF"; for x in ${list}; do i=$((i+1)); [ "${x}" != "EOF" ] && { y+=" ${x}"; z+="cmd wifi forget-network ${x}; "; }; ([ ${i} -ge 10 ] || [ "${x}" = "EOF" ]) && { [ -z "${y}" ] && continue; echo "removing networks: ${y}"; unset y; echo "${z}" | su - >/dev/null; } || { continue; }; done'
 
 																	_wificonnect_clear
+																	_echo "\t${color_success}Completed !${color_reset}" 1
 																	return 0
 																}
 											_wificonnect_getpsk()

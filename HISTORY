@@ -1,5 +1,31 @@
 
 
+Version 4.1 (Build: 29-05-2026):
+
+
+  wsconfig script:
+   1. added new plugin macsposed-persist which helps to persist macsposed.
+   2. added plugin captive-portal-app data reset.
+   3. added some environment variables for specifying which plugin to install.
+   4. fixed an issue were environment variables is not loaded after initial setup.
+   5. some improvements.
+
+  wifi-spotter script:
+   1. added initializer for macsposed-persist plugin.
+   2. improved macsposed auto state manager.
+   3. fixed an issue were trap cleaner was running incorrectly.
+   4. improved network reset function.
+   5. fixed an issue with wifi reset function.
+
+  installer script:
+   1. fixed a typo with silent updater were it caused to silent updater to fail.
+   2. added channel popup after successful installation.
+
+  poster script:
+   1. few improvements.
+
+
+
 Version 4.0-b17 (Build: 28-05-2026):
 
 

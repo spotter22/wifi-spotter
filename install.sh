@@ -127,6 +127,7 @@
 											echo "startting wsconfig..."
 											sudo ${home_dir}/plugins/wsconfig.sh "--install-plugins"
 
+											termux-open-url "https://t.me/wspotter22"
 											echo "Installation completed !"
 										}
 						_process_ufetch()
@@ -136,7 +137,7 @@
 													link_alt="https://github.com/spotter22/wifi-spotter/releases/download/LATEST/LATEST"
 
 												if [ -s "${home_dir}/updates/update.tar.gz" ]; then
-													if [ "${1}" = "--slient" ]; then
+													if [ "${1}" = "--silent" ]; then
 														echo "testing tarball..."
 														tar -tf "${home_dir}/updates/update.tar.gz" &>/dev/null && return 0 \
 														|| rm -f "${home_dir}/updates/update.tar.gz"
