@@ -132,7 +132,7 @@
 										}
 						_process_ufetch()
 										{
-													local link latest
+													local link latest filename
 													link="https://raw.githubusercontent.com/spotter22/wifi-spotter/refs/heads/main/LATEST"
 													link_alt="https://github.com/spotter22/wifi-spotter/releases/download/LATEST/LATEST"
 
@@ -162,7 +162,6 @@
 													else
 														echo "preparing to install ${latest}"
 													fi
-														version="${latest}"
 														break
 												fi
 											done
@@ -170,12 +169,12 @@
 													echo "downloading latest wifi-spotter package..."
 													mkdir -p "${home_dir}/updates/tmp"
 													link="https://github.com/spotter22/wifi-spotter/releases/download"
-													latest="wifi-spotter-${version}.tar.gz"
+													filename="wifi-spotter-${latest}.tar.gz"
 													while true; do
-														curl -sL "${link}/${version}/${latest}" -o "${home_dir}/updates/${latest}" || continue
-														tar -tf "${home_dir}/updates/${latest}" >/dev/null && \
-															cp "${home_dir}/updates/${latest}" "${home_dir}/updates/update.tar.gz" && break \
-															|| { echo -e "Error: downloading failed !\ntrying to download again..."; rm -f "${home_dir}/updates/${latest}"; }
+														curl -sL "${link}/${latest}/${filename}" -o "${home_dir}/updates/${filename}" || continue
+														tar -tf "${home_dir}/updates/${filename}" >/dev/null && \
+															cp "${home_dir}/updates/${filename}" "${home_dir}/updates/update.tar.gz" && break \
+															|| { echo -e "Error: downloading failed !\ntrying to download again..."; rm -f "${home_dir}/updates/${filename}"; }
 													done
 										}
 						_process_uinstall()
