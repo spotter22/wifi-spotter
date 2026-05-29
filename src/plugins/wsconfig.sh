@@ -45,7 +45,7 @@
 												source "${profile}"
 
 												echo >"${ws_env}"
-												chmod 644 "${ws_env}"
+												chmod 664 "${ws_env}"
 												chown --reference="${home}" "${ws_env}"
 
 												echo "ws_disconnect_alt result: ${ws_disconnect_alt}"
@@ -60,16 +60,19 @@
 												echo "installing macsposed-persist..."
 											fi
 
+												# error typo from v4.1
+												sed -i '/ws_init_macsposed_persist/d' "${profile}"
 											if [ "${ws_plugin_macsposed_persist}" != "no" ]; then
 												su -c 'cp "'${home_dir}'/plugins/macsposed-persist.sh" "/data/adb/service.d/" && chmod 755 "/data/adb/service.d/macsposed-persist.sh"'
 												echo >"${home_dir}/logs/_init_macsposed_persist.log"
-												echo "export ws_init_macsposed_persist=\"incomplete\"" >>"${profile}"
+												chmod 664 "${home_dir}/logs/_init_macsposed_persist.log"
+												chown --reference="${home}" "${home_dir}/logs/_init_macsposed_persist.log"
 											fi
 
 												sed -i '/ws_captiveportal_alt/d' "${profile}"
 											if [ "${ws_plugin_captive_portal_clear}" != "no" ]; then
 												ws_captiveportal_alt=$(echo "pm list packages" | su - | grep -F "captiveportallogin" | sed "s/package://g" | tr "\n" " ")
-												echo "export ws_captiveportal_alt=${ws_captiveportal_alt}" >>"${profile}"
+												echo "export ws_captiveportal_alt=\"${ws_captiveportal_alt}\"" >>"${profile}"
 											fi
 
 											return 0

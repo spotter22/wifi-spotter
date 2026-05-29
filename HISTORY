@@ -1,5 +1,13 @@
 
 
+Version 4.2-b1 (Build: 29-05-2026):
+
+  wsconfig script:
+   1. fixed typo with macsposed-persist plugin enviroment.
+   2. fixed issue with captive-portal-app plugin environment.
+
+
+
 Version 4.1 (Build: 29-05-2026):
 
 
