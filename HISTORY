@@ -1,5 +1,23 @@
 
 
+Version 4.2-b3 (Build: 31-05-2026):
+
+  wifi-spotter script:
+   1. fixed an issue were available requests 
+was not parsing correctly when device is already connected to network.
+   2. fixed an issue with odd address excluder.
+   3. fixed an issue with network discovery function.
+   4. fixed an issue with macsposed auto managment option.
+   5. fixed an issue with macsposed-persist initializer.
+
+  wsconfig script:
+   1. complete rewrote for easier maintaining and better handling.
+
+  install script:
+   1. added wsconfig applier when needed on new upgrade.
+
+
+
 Version 4.2-b2 (Build: 29-05-2026):
 
   install script:

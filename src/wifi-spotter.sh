@@ -343,8 +343,8 @@
 											fi
 
 												# environment check
-											if [ -s "${home_dir}/logs/_init_env.log" ] && [ -z "${ws_disconnect_alt}" ]; then
-												echo -e "error: restarting termux is required\nyou can instead try: source ~/.profile"
+											if [ -s "${home_dir}/logs/_init_env.log" ]; then
+												echo -e "${color_error}error: restarting termux is required${color_reset}\n${color_tip}you can instead try${color_reset}: source ~/.profile"
 												return 1
 											fi
 
@@ -702,6 +702,7 @@
 																		if [ -z "${ssid}" ]; then
 																			return 1
 																		else
+																			bssid=$(echo "${u}" | grep -Po "BSSID: \K[^,]*" | sed -n 1p)
 																			ssid="${ssid:1:-1}"
 																			[[ "${ssid}" =~ "'" ]] && ssid="${ssid//\'/\&squot;}"
 																			[[ "${ssid}" =~ '"' ]] && ssid="${ssid//\"/\&quot;}"
@@ -1048,7 +1049,7 @@
 																		exclude="00:00:00 ff:ff:ff 00:07:89 00:30:4c 00:e0:4c 18:e8:29 1c:3b:f3 24:5a:4c 24:a4:3c 28:87:ba 3c:84:6a 40:a5:ef 48:22:54 60:29:d5 68:72:51 68:ff:7b 78:8a:20 80:2a:a8 88:3c:1c 9c:a2:f4 ac:15:a2 b4:a9:4f b4:fb:e4 c0:c9:e3 e4:38:83 f0:9f:c2 f4:92:bf f4:e2:c6"
 																		prev_clients=$(jq '.ws.bssid.['$list'].["admins","tclients"]' "${db_file}" | sed '/\[/d; /\]/d; /null/d; s/[,\"]//g' | sort | uniq | tr "\n" " ")
 																	while read y; do
-																		[[ "${exclude}" =~ "${y:0:8}" ]] || ([ "${ws_interface_allows}" = "even" ] && [[ "${y:0:2}" =~ (1|3|5|7|9|B|D|F) ]]) || ([ -f "${home_dir}/logs/creds_${obf_date}.log" ] && [[ "${prev_clients,,}" =~ "${y,,}" ]]) && { i[4]=$((i[4]+1)); continue; }
+																		[[ "${exclude}" =~ "${y:0:8}" ]] || ([ "${ws_interface_allows}" = "even" ] && [[ "${y:0:2}" =~ (1|3|5|7|9|B|b|D|d|F|f) ]]) || ([ -f "${home_dir}/logs/creds_${obf_date}.log" ] && [[ "${prev_clients,,}" =~ "${y,,}" ]]) && { i[4]=$((i[4]+1)); continue; }
 																		reqs_list+=" ${y}"
 																		i[5]=$((i[5]+1))
 																	done< <(jq '.ws.bssid.['$list'].clients' "${db_file}" | sed '/\[/d; /\]/d; /null/d; s/[,\"]//g' | sort | uniq | shuf)
@@ -1068,9 +1069,6 @@
 																	local c x y t n r cooldown curr_addr
 																			mode="auto"
 																			_wificonnect_select || return 1
-																		if [ -z "${ws_disconnect_alt}" ] || [ -z "${ws_macchanger_alt}" ]; then
-																			sudo "${home_dir}/plugins/wsconfig.sh"
-																		fi
 																			_wificonnect_status "is_disconnected" || return 1
 																			_wificonnect_clear; _macchanger_set "--random" || return 1
 																			_wificonnect_connect "${ssid}" "${sec}" "${bssid}" || return 1
@@ -1107,7 +1105,7 @@
 																			play-audio "$home_dir/sfx/notification_error.m4a" &
 																			break
 																		else
-																			_wificonnect_macsposed "--disable"
+																			_wificonnect_macsposed "--disable" "${x}"
 																			cooldown=0
 																			curl -vsLA "${useragent}" "${host}:${port}/${status}" >"${home_dir}/logs/tmp" 2>"${home_dir}/logs/err"
 																			c=$(cat "${home_dir}/logs/err" | tr '\t\r\n*' '#')
@@ -1149,9 +1147,6 @@
 																{
 																	local err result req
 
-																	if [ -z "${ws_macchanger_alt}" ]; then
-																		sudo "${home_dir}/plugins/wsconfig.sh"
-																	fi
 																	if [ "${1}" = "--random" ]; then
 																		req="ghost"
 																	else
@@ -1183,20 +1178,25 @@
 																}
 											_wificonnect_macsposed()
 																{
+																	local x y
 
-																	if [ -n "${_STATE_MACSPOSED}" ]; then
-																		return 0
-																	elif [ "${ws_auto_macsposed}" = "no" ]; then
-																		return 0
-																	elif [ "${1}" = "--enable" ]; then
+																	if [ "${ws_auto_macsposed}" = "no" ] || [ "${1}" = "--enable" ]; then
+																		echo -n>"${home_dir}/logs/_init_macsposed_disabled.log"
 																		sudo pm enable "com.berdik.macsposed"
+																		return 0
+																	elif [ -n "${_STATE_MACSPOSED}" ]; then
+																		return 0
+																	elif [ -s "${home_dir}/logs/_init_macsposed_disabled.log" ]; then
+																		_STATE_MACSPOSED="1"
+																		return 0
 																	elif [ "${1}" = "--disable" ]; then
 																			local x
 																			_STATE_MACSPOSED="1"
+																			echo >"${home_dir}/logs/_init_macsposed_disabled.log"
 																			sudo pm disable "com.berdik.macsposed"
 																		if [ -s "${home_dir}/logs/_init_macsposed_persist.log" ]; then
 																			_echo "Initializing macsposed-persist..." 1
-																			su -c 'local x; echo "cmd wifi set-wifi-enabled disabled" | su -; sleep 3; echo "cmd wifi set-wifi-enabled enabled" | su -; sleep 3; x=$('${prefix}'/iw dev '${iface}' info 2>&1 | '${prefix}'/grep -Po '\''addr \K.*'\''); sed -i "s|addr=.*|addr=\"${x}\"|" "/data/adb/service.d/macsposed-persist.sh"'
+																			su -c 'local n; echo "cmd wifi set-wifi-enabled disabled" | su -; sleep 3; echo "cmd wifi set-wifi-enabled enabled" | su -; sleep 3; n=$('${prefix}'/iw dev '${iface}' info 2>&1 | '${prefix}'/grep -Po '\''addr \K.*'\''); [ "${n}" != "'${x}'" ] && sed -i "s|addr=.*|addr=\"${n}\"|" "/data/adb/service.d/macsposed-persist.sh"'
 																			echo -n>"${home_dir}/logs/_init_macsposed_persist.log"
 																		fi
 																	else
@@ -1209,7 +1209,6 @@
 																		_echo "- Performing eligibility test..." 1
 																		_wificonnect_select || return 1
 																			_echo "- Starting comptiablity checker..." 1
-																				sudo "${home_dir}/plugins/wsconfig.sh"
 																				_wificonnect_status "is_disconnected" || return 1
 																					_macchanger_set "--random"; result="${ret}" || return 1
 																						_wificonnect_connect "${ssid}" "${sec}" "${bssid}" || \
@@ -1219,7 +1218,7 @@
 																									}
 																		x=$(su -c ''${prefix}'/iw dev '${iface}' info 2>&1 | '${prefix}'/grep -Po "addr \K.*"')
 																	if [ "${x}" = "${result}" ]; then
-																		_wificonnect_macsposed "--disable"
+																		_wificonnect_macsposed "--disable" "${result}"
 																		_echo "\t${color_success}Eligibility test passed !${color_reset}" 1
 																		return 0
 																	else
@@ -1244,6 +1243,12 @@
 																	_wificonnect_clear
 																	_echo "\t${color_success}Completed !${color_reset}" 1
 																	return 0
+																}
+											_wificonnect_wsconfig()
+																{
+																	sudo "${home_dir}/plugins/wsconfig.sh"
+																	echo -n>"${home_dir}/logs/_init_new_ws.log"
+																	exit 1
 																}
 											_wificonnect_getpsk()
 																{
@@ -1303,6 +1308,7 @@
 																				([ "${1}" = "fast" ] && [ ${total} -le 50 ] && [ ${sig_list[$i]} -gt 50 ]) || \
 																				([ "${1}" = "fast" ] && [ ${total} -gt 50 ] && [ ${sig_list[$i]} -gt 60 ]); then
 																				_echo "\t${color_new}Proccessing: ${t}/${total}${color_reset}" 1
+																				_wificonnect_status "is_disconnected" || return 1
 																				_wificonnect_connect "${ssid}" "${sec}" "${bssid}" && _autoscan_getinfo
 																			else
 																				_echo "\t${color_warn}Skipping network with weak signal:${color_reset} ${sig_list[$i]}%" 1
@@ -1330,6 +1336,9 @@
 												return ${err}
 											fi
 												_echo "- Startting connect mode:" 1
+											if [ -s "${home_dir}/logs/_init_new_ws.log" ] || [ -z "${ws_disconnect_alt}" ] || [ -z "${ws_interface_allows}" ] || [ -z "${ws_macchanger_alt}" ]; then
+												_wificonnect_wsconfig
+											fi
 											if  [ "$1" = "a" ]; then
 												_wificonnect_autoscan "auto"
 											elif  [ "$1" = "f" ]; then

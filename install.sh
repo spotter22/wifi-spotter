@@ -128,6 +128,7 @@
 											sudo ${home_dir}/plugins/wsconfig.sh "--install-plugins"
 
 											termux-open-url "https://t.me/wspotter22"
+											echo >"${home_dir}/logs/_init_new_ws.log"
 											echo "Installation completed !"
 										}
 						_process_ufetch()
