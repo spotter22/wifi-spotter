@@ -20,7 +20,7 @@ _persist_apply_safely(){
 			sleep 10
 		done
 		ip link set dev wlan0 down
-		up link set dev wlan0 address "${rand}"
+		ip link set dev wlan0 address "${rand}"
 		ip link set dev wlan0 up
 	done
 

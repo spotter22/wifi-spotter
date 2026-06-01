@@ -1,5 +1,14 @@
 
 
+Version 4.2-b4 (Build: 01-06-2026):
+
+  wsconfig script:
+   1. fixed an issue were tests does not runs correctly.
+
+  macsposed-persist script:
+   1. fixed a typo were it's prevents to run correctly.
+
+
 Version 4.2-b3 (Build: 31-05-2026):
 
   wifi-spotter script:
