@@ -1,5 +1,12 @@
 
 
+Version 4.2-b6 (Build: 02-06-2026):
+
+  wsconfig script:
+   1. fixed tests issue (hopefully).
+
+
+
 Version 4.2-b5 (Build: 01-06-2026):
 
   network reset function:
