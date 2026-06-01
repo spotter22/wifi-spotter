@@ -10,6 +10,7 @@ _wsconfig_test_disconnect(){
 	source "${home_dir}/plugins/connection-status.sh" || return 1
 	cmd wifi set-wifi-enabled disabled; sleep 3
 	cmd wifi set-wifi-enabled enabled; sleep 3
+	_connection_interface_connect "foo" "open"
 
 	_connection_interface_disconnect "0" && \
 		{ ws_disconnect_alt=0; return 0; }
@@ -33,15 +34,13 @@ _wsconfig_test_macsposed(){
 	source "${home_dir}/plugins/connection-status.sh" || return 1
 	cmd wifi set-wifi-enabled disabled; sleep 3
 	cmd wifi set-wifi-enabled enabled; sleep 3
+	_connection_interface_connect "foo" "open"
 
 	_connection_interface_setaddr "--random" "0" && \
 		ws_macchanger_alt=0 || ws_macchanger_alt=1
 
 	_connection_interface_setaddr "11:11:11:11:11:11" "${ws_macchanger_alt}" && \
 		ws_interface_allows="odd" || ws_interface_allows="even"
-
-	cmd wifi set-wifi-enabled disabled; sleep 3
-	cmd wifi set-wifi-enabled enabled; sleep 3
 
 	_connection_interface_setaddr "--random" "${ws_macchanger_alt}"
 

@@ -460,7 +460,7 @@
 											elif [ $1 = 2 ]; then
 												_process_arping; return 1
 											elif [ $1 = 3 ]; then
-												_process_ping6 "scan"; return 1
+												_process_ping6 "scan"; return ${?}
 											elif [ $1 = 4 ]; then
 												[ "${host}" != 0 ] && p="${host:0:-1}0/16" || { _echo "\tCannot read host: 0" 1; return 1; }
 											else
@@ -1238,7 +1238,7 @@
 																{
 																	_echo "- Resetting network settings:" 1
 																	_echo "\t${color_tip}Removing saved networks...${color_reset}" 1
-																	su -c 'local i x y z list; i=0; list="$(echo "cmd wifi list-networks" | su - | grep -F "open" | awk '\''{print $1}'\'' | tr "\n" " ") EOF"; for x in ${list}; do i=$((i+1)); [ "${x}" != "EOF" ] && { y+=" ${x}"; z+="cmd wifi forget-network ${x}; "; }; ([ ${i} -ge 10 ] || [ "${x}" = "EOF" ]) && { [ -z "${y}" ] && continue; echo "removing networks: ${y}"; unset y; echo "${z}" | su - >/dev/null; } || { continue; }; done'
+																	su -c 'local i x y z list; i=0; list="$(echo "cmd wifi list-networks" | su - | grep -F "open" | awk '\''{print $1}'\'' | tr "\n" " ") EOF"; for x in ${list}; do i=$((i+1)); [ "${x}" != "EOF" ] && { y+=" ${x}"; z+="cmd wifi forget-network ${x}; "; }; ([ ${i} -ge 10 ] || [ "${x}" = "EOF" ]) && { [ -z "${y}" ] && continue; echo "removing networks: ${y}"; unset y; i=0; echo "${z}" | su - >/dev/null; } || { continue; }; done'
 
 																	_wificonnect_clear
 																	_echo "\t${color_success}Completed !${color_reset}" 1

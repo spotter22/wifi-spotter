@@ -1,5 +1,18 @@
 
 
+Version 4.2-b5 (Build: 01-06-2026):
+
+  network reset function:
+   1. fixed an issue with index remove.
+
+  network discovery function:
+   1. fixed an issue with return status.
+
+  wsconfig script:
+   1. fixed an issue again were tests does not run correctly.
+
+
+
 Version 4.2-b4 (Build: 01-06-2026):
 
   wsconfig script:
