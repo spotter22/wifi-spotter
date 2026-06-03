@@ -241,6 +241,18 @@ done
 }
 
 
+_connection_interface_reconnect(){
+	ret=0
+	local method iface prefix result
+	[ -z "${1}" ] && method="0" || method="${1}"
+	[ -z "${2}" ] && iface="wlan0" || iface="${2}"
+	[ -z "${3}" ] && prefix="${PREFIX}/bin" || prefix="${3}"
+
+	# requires a way to get psk otherwise it will fail on protected networks.
+
+}
+
+
 _connection_interface_connect(){
 	ret=0
 	local ssid sec iface prefix result
@@ -311,6 +323,10 @@ _connection_interface_disconnect(){
 		echo "_connection_interface_disconnect: warning unknown method is passed (method: ${method})."
 		method=1
 	fi
+
+	# note: `iw disconnect` will always return success when device is not connected into network,
+	# and when device is connected to certain network it's can return either "operation not permitted" or success.
+
 
 	if [ ${method} -eq 0 ] || [ ${method} -eq 1 ]; then
 		[ ${method} -eq 1 ] && \

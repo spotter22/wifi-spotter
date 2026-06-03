@@ -7,20 +7,22 @@ _wsconfig_test_disconnect(){
 
 	echo "testing disconnect-method..."
 
-	source "${home_dir}/plugins/connection-status.sh" || return 1
-	cmd wifi set-wifi-enabled enabled; sleep 1
-	_connection_interface_state "up" || return 1
+		# testing `disconnect` requires device to be connected into wifi
+	if [ -z "$(ip n)" ]; then
+		echo "warning: no wifi connection is found !"
+		ws_disconnect_alt=2
+		return 1
+	fi
 
-	_connection_interface_disconnect "0" && \
+	iw dev wlan0 disconnect && \
 		{ ws_disconnect_alt=0; return 0; }
 
 	if [ ${ws_macchanger_alt} -eq 1 ]; then
 		ws_disconnect_alt=2
 		return 0
 	else
-		_connection_interface_disconnect "1" && \
-		ws_disconnect_alt=1 || ws_disconnect_alt=2
-		_connection_interface_state "up" || return 1
+		ws_disconnect_alt=1
+		return 0
 	fi
 
 }
@@ -31,16 +33,13 @@ _wsconfig_test_macsposed(){
 
 	echo "testing macsposed..."
 
-	source "${home_dir}/plugins/connection-status.sh" || return 1
 	cmd wifi set-wifi-enabled enabled; sleep 1
-	_connection_interface_state "up" || return 1
 
-	_connection_interface_setaddr "--random" "0" && \
-		ws_macchanger_alt=0 || ws_macchanger_alt=1
+	macchanger -r wlan0 &>/dev/null && ws_macchanger_alt=0 || ws_macchanger_alt=1
 
-	_connection_interface_setaddr "11:11:11:11:11:11" "${ws_macchanger_alt}" && \
-		ws_interface_allows="odd" || ws_interface_allows="even"
-	_connection_interface_state "up" || return 1
+	[ ${ws_macchanger_alt} -eq 1 ] && ip link set dev wlan0 down
+	macchanger -m "11:11:11:11:11:11" wlan0 &>/dev/null && ws_interface_allows="odd" || ws_interface_allows="even"
+	[ ${ws_macchanger_alt} -eq 1 ] && ip link set dev wlan0 up
 
 }
 
@@ -53,15 +52,18 @@ _wsconfig_init_profile(){
 		return 1
 	fi
 
-	_wsconfig_test_macsposed || return 1
+	# create profile if not exist
+	touch "${profile}"
+
+	_wsconfig_test_disconnect
+	sed -i '/ws_disconnect_alt/d' "${profile}"
+	echo "export ws_disconnect_alt=${ws_disconnect_alt}" >>"${profile}"
+
+	_wsconfig_test_macsposed
 	sed -i '/ws_macchanger_alt/d' "${profile}"
 	sed -i '/ws_interface_allows/d' "${profile}"
 	echo "export ws_macchanger_alt=${ws_macchanger_alt}" >>"${profile}"
 	echo "export ws_interface_allows=\"${ws_interface_allows}\"" >>"${profile}"
-	
-	_wsconfig_test_disconnect || return 1
-	sed -i '/ws_disconnect_alt/d' "${profile}"
-	echo "export ws_disconnect_alt=${ws_disconnect_alt}" >>"${profile}"
 
 	# let wifi-spotter know reloading profile is needed
 	e="${home_dir}/logs/_init_env.log"
@@ -71,7 +73,6 @@ _wsconfig_init_profile(){
 	echo "echo -n>\"${e}\"" >>"${profile}"
 
 	# fix profile permission
-	touch "${profile}"
 	chmod 600 "${profile}"
 	chown --reference="${home}" "${profile}"
 
@@ -86,7 +87,7 @@ _wsconfig_init_plugins(){
 
 	if [ "${ws_plugin_hostname_spoofer}" != "no" ]; then
 		echo "installing hostname-spoofer..."
-		su -c 'rm -f "/data/adb/post-fs-data.d/identfiers-spoofer.sh" "/data/adb/post-fs-data.d/useragent-spoofer.sh" "/data/adb/post-fs-data.d/hostname-spoofer.sh" 2>/dev/null; cp "'${home_dir}'/plugins/hostname-spoofer.sh" "/data/adb/service.d/" && chmod 755 "/data/adb/service.d/hostname-spoofer.sh" && /data/adb/service.d/hostname-spoofer.sh'
+		su -c 'rm -f "/data/adb/post-fs-data.d/identfiers-spoofer.sh" "/data/adb/post-fs-data.d/useragent-spoofer.sh" "/data/adb/post-fs-data.d/hostname-spoofer.sh" 2>/dev/null; cp "'${home_dir}'/plugins/hostname-spoofer.sh" "/data/adb/service.d/" && chmod 755 "/data/adb/service.d/hostname-spoofer.sh"'
 	fi
 
 		# error typo from v4.1
@@ -109,7 +110,16 @@ _wsconfig_init_plugins(){
 
 	home_dir="/data/data/com.termux/files/home/wifi-spotter-root"
 	home="/data/data/com.termux/files/home/"
-	profile="/data/data/com.termux/files/home/.profile"
+	profile="${home_dir}/.wsprofile"
+
+	# clean v4.2-b6
+	if [ -s "${home}/.profile" ]; then
+		sed -i '/ws_macchanger_alt/d' "${home}/.profile"
+		sed -i '/ws_interface_allows/d' "${home}/.profile"
+		sed -i '/ws_disconnect_alt/d' "${home}/.profile"
+		sed -i '/ws_captiveportal_alt/d' "${home}/.profile"
+		sed -i '/_init_env\.log/d' "${home}/.profile"
+	fi
 
 	if [ "${1}" = "--install-plugins" ]; then
 		_wsconfig_init_plugins

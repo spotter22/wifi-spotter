@@ -1,5 +1,14 @@
 
 
+Version 4.2-b7 (Build: 04-06-2026):
+
+  wsconfig script:
+   1. fixed tests issue permanently.
+   2. added seperate profile for storing configs.
+   3. some other improvements.
+
+
+
 Version 4.2-b6 (Build: 02-06-2026):
 
   wsconfig script:

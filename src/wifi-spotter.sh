@@ -344,8 +344,7 @@
 
 												# environment check
 											if [ -s "${home_dir}/logs/_init_env.log" ]; then
-												echo -e "${color_error}error: restarting termux is required${color_reset}\n${color_tip}you can instead try${color_reset}: source ~/.profile"
-												return 1
+												source "${home_dir}/.wsprofile"
 											fi
 
 											if [ "$(id -u)" = "0" ]; then
@@ -1248,7 +1247,7 @@
 																{
 																	sudo "${home_dir}/plugins/wsconfig.sh"
 																	echo -n>"${home_dir}/logs/_init_new_ws.log"
-																	exit 1
+																	source "${home_dir}/.wsprofile"
 																}
 											_wificonnect_getpsk()
 																{
