@@ -345,6 +345,7 @@
 												# environment check
 											if [ -s "${home_dir}/logs/_init_env.log" ]; then
 												source "${home_dir}/.wsprofile"
+												echo >"${home_dir}/logs/_init_env.log"
 											fi
 
 											if [ "$(id -u)" = "0" ]; then
@@ -1245,9 +1246,12 @@
 																}
 											_wificonnect_wsconfig()
 																{
-																	sudo "${home_dir}/plugins/wsconfig.sh"
-																	echo -n>"${home_dir}/logs/_init_new_ws.log"
-																	source "${home_dir}/.wsprofile"
+																	if [ -s "${home_dir}/logs/_init_new_ws.log" ] || [ -z "${ws_disconnect_alt}" ] || [ -z "${ws_interface_allows}" ] || [ -z "${ws_macchanger_alt}" ]; then
+																		sudo "${home_dir}/plugins/wsconfig.sh"
+																		echo -n>"${home_dir}/logs/_init_new_ws.log"
+																		source "${home_dir}/.wsprofile"
+																		echo >"${home_dir}/logs/_init_env.log"
+																	fi
 																}
 											_wificonnect_getpsk()
 																{
@@ -1335,9 +1339,10 @@
 												return ${err}
 											fi
 												_echo "- Startting connect mode:" 1
-											if [ -s "${home_dir}/logs/_init_new_ws.log" ] || [ -z "${ws_disconnect_alt}" ] || [ -z "${ws_interface_allows}" ] || [ -z "${ws_macchanger_alt}" ]; then
+
+												# tests
 												_wificonnect_wsconfig
-											fi
+
 											if  [ "$1" = "a" ]; then
 												_wificonnect_autoscan "auto"
 											elif  [ "$1" = "f" ]; then
