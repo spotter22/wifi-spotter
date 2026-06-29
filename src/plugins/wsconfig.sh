@@ -21,7 +21,9 @@ _wsconfig_test_disconnect(){
 		ws_disconnect_alt=2
 		return 0
 	else
-		ws_disconnect_alt=1
+		# setting 1 will not work properly on some devices
+		#ws_disconnect_alt=1
+		ws_disconnect_alt=2
 		return 0
 	fi
 
@@ -65,13 +67,6 @@ _wsconfig_init_profile(){
 	echo "export ws_macchanger_alt=${ws_macchanger_alt}" >>"${profile}"
 	echo "export ws_interface_allows=\"${ws_interface_allows}\"" >>"${profile}"
 
-	# let wifi-spotter know reloading profile is needed
-	e="${home_dir}/logs/_init_env.log"
-	echo >"${e}"; chmod 664 "${e}"
-	chown --reference="${home}" "${e}"
-	sed -i '/_init_env\.log/d' "${profile}"
-	echo "echo -n>\"${e}\"" >>"${profile}"
-
 	# fix profile permission
 	chmod 600 "${profile}"
 	chown --reference="${home}" "${profile}"
@@ -108,9 +103,16 @@ _wsconfig_init_plugins(){
 
 }
 
+	version="unknown"
+	commit="unknown"
 	home_dir="/data/data/com.termux/files/home/wifi-spotter-root"
 	home="/data/data/com.termux/files/home/"
 	profile="${home_dir}/.wsprofile"
+
+		# clean v4.3-b1
+	if [ -s "${profile}" ]; then
+		sed -i '/_init_env/d' "${profile}"
+	fi
 
 	# clean v4.2-b6
 	if [ -s "${home}/.profile" ]; then
@@ -123,6 +125,11 @@ _wsconfig_init_plugins(){
 
 	if [ "${1}" = "--install-plugins" ]; then
 		_wsconfig_init_plugins
+	elif [ "${1}" = "--export-version" ]; then
+		 [ "${version}" = "unknown" ] && version=43
+		v="${version/-b*/}"; v="${v/v/}"; v="${v/./}"
+		sed -i '/ws_ver=/d' "${profile}"
+		echo "ws_ver=${v}" >>"${profile}"
 	else
 		_wsconfig_init_profile
 	fi

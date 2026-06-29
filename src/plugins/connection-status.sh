@@ -241,15 +241,78 @@ done
 }
 
 
+_connection_interface_getpsk(){
+	psk=0
+	local ssid result pskstore
+	[ -z "${1}" ] && unset ssid || ssid="${1}"
+
+	echo "_connection_interface_getpsk: parsing network psk: ${ssid}"
+	pskstore[0]="/data/misc/apexdata/com.android.wifi/WifiConfigStore.xml"
+	result=$(su -c 'cat '${pskstore[0]}'')
+	psk=$(echo "${result}" | grep -FB1 "<string name=\"PreSharedKey\">" | sed 's|<string name="SSID">&quot;||g; s|<string name="PreSharedKey">&quot;||g; s|&quot;</string>||g; s|&amp;|&|g; s|'\''|\&squot\;|g; s|\\\\|&bslash;|g; /^--$/d' | grep -FA1 "${ssid:1: -1}" | sed -n 2p)
+
+	if [ -n "${psk}" ]; then
+		echo "_connection_interface_getpsk: parsing success (ret: ${psk})."
+	else
+		echo "_connection_interface_getpsk: error parsing failed (ret: 0)."
+		return 1
+	fi
+}
+
+
+_connection_interface_getinfo(){
+	ret=0; ssid=0; bssid=0; sec=0
+	local iface prefix result pskstore
+	[ -z "${1}" ] && iface="wlan0" || iface="${1}"
+	[ -z "${2}" ] && prefix="${PREFIX}/bin" || prefix="${2}"
+
+	# cannot rely on `cmd wifi status` since it does not allow to parse ssid effecttively.
+
+	result=$(su -c 'iw dev '${iface}' link; '${prefix}'/cmd wifi status')
+	ssid=$(echo -e "${result}" | grep "SSID:" | sed -n 1p | sed "s/.*SSID: //")
+	bssid[0]=$(echo "${result}" | grep "Connected to" | sed "s/.*Connected to //; s/ (on ${iface})//")
+	bssid[1]=$(echo "${result}" | grep -Po "BSSID: \K[^,]*" | sed -n 1p)
+	sec=$(echo "${result}" | grep -Po "Security type: \K[^,]*" | sed -n 1p)
+
+	if ([ -z "${bssid[0]}" ] && [ -z "${bssid[1]}" ]); then
+		echo "_connection_interface_getinfo: error parsing failed result is empty (ret: iw: 0, cmd: 0)."
+		return 1
+	elif [ "${bssid[0]}" = "${bssid[1]}" ]; then
+		echo "_connection_interface_getinfo: parsing success !"
+	else
+		echo "_connection_interface_getinfo: error connection was lost during parsing (ret: iw: ${bssid[0]} != cmd: ${bssid[1]})."
+		return 2
+	fi
+
+	[[ "${ssid}" =~ "'" ]] && ssid="${ssid//\'/\&squot;}"
+	[[ "${ssid}" =~ '"' ]] && ssid="${ssid//\"/\&quot;}"
+	[[ "${ssid}" =~ '\' ]] && ssid="${ssid//\\/\&bslash;}"
+	ssid="\"${ssid}\""
+
+	if [ "${sec}" = "0" ]; then
+		sec="open"
+	elif [ "${sec}" = "1" ]; then
+		sec="wep"
+	elif [ "${sec}" = "2" ]; then
+		sec="wpa2"
+	elif [ "${sec}" = "3" ]; then
+		sec="wpa3"
+	else
+		echo "_connection_interface_getinfo: error unknown security type (ret: ${sec})."
+		return 3
+	fi
+}
+
+
 _connection_interface_reconnect(){
-	ret=0
-	local method iface prefix result
+	local method iface prefix
 	[ -z "${1}" ] && method="0" || method="${1}"
 	[ -z "${2}" ] && iface="wlan0" || iface="${2}"
 	[ -z "${3}" ] && prefix="${PREFIX}/bin" || prefix="${3}"
 
-	# requires a way to get psk otherwise it will fail on protected networks.
-
+	_connection_interface_getinfo "${iface}" "${prefix}" || return ${?}
+	_connection_interface_disconnect "${method}" "${iface}" "${prefix}" || return ${?}
+	_connection_interface_connect "${ssid}" "${sec}" "${iface}" "${prefix}" || return ${?}
 }
 
 
@@ -279,6 +342,11 @@ _connection_interface_connect(){
 	[[ "${ssid}" =~ "#" ]] && ssid="${ssid//\#/\\#}"
 	if [[ "${ssid:0:1}" =~ (\") ]] && [[ "${ssid: -1}" =~ (\") ]]; then
 		ssid="${ssid:1:-1}"
+	fi
+
+	if [ ${sec} != "open" ]; then
+		_connection_interface_getpsk "${ssid}" || return ${?}
+		sec="${sec} ${psk}"
 	fi
 
 	echo "_connection_interface_connect: using optimized info ssid: ${ssid} sec: ${sec}"

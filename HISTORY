@@ -1,5 +1,36 @@
 
 
+Version 4.3-b1 (Build: 29-06-2026):
+
+  connection-status script:
+   1. added new function "reconnect" which helps to quickly reconnect into network.
+   2. added new implemention of "getpsk" function.
+   3. added new implemention of "getinfo" function.
+
+  wifi-spotter script:
+   1. rewrote get clients function for better stability and easier maintaining.
+   2. added current version code into database suffix, which will prevent possible rollback issues.
+   3. some fixes and improvements on trap cleaner.
+   4. fixed an possible issue with profile.
+   5. removed borrow bruteforce (-cxx) since it's had core bug and it was complex to maintain.
+   6. removed pin network discovery (-cp) since it's based on borrow bruteforce.
+   7. some other fixes and improvements.
+
+  installer script:
+   1. removed merging previous database since it's no longer needed.
+   2. added version setter on installation.
+
+  wsconfig script:
+   1. added current version setter, helps for idenifying new added features.
+   2. fixed an possible issue with disconnect test.
+
+  database-merger script:
+   1. added invalidated data clearer which helps to remove incorrectly invalid data by previous versions.
+   2. added database searcher from device storage which helps to easily share database between devices.
+   3. some improvements for better maintaining.
+
+
+
 Version 4.2-b8 (Build: 04-06-2026):
 
   wsconfig script:
@@ -45,11 +76,13 @@ Version 4.2-b4 (Build: 01-06-2026):
    1. fixed a typo were it's prevents to run correctly.
 
 
+
 Version 4.2-b3 (Build: 31-05-2026):
 
   wifi-spotter script:
-   1. fixed an issue were available requests 
-was not parsing correctly when device is already connected to network.
+   1. fixed an issue were available requests
+
+  was not parsing correctly when device is already connected to network.
    2. fixed an issue with odd address excluder.
    3. fixed an issue with network discovery function.
    4. fixed an issue with macsposed auto managment option.
@@ -80,7 +113,6 @@ Version 4.2-b1 (Build: 29-05-2026):
 
 Version 4.1 (Build: 29-05-2026):
 
-
   wsconfig script:
    1. added new plugin macsposed-persist which helps to persist macsposed.
    2. added plugin captive-portal-app data reset.
@@ -106,7 +138,6 @@ Version 4.1 (Build: 29-05-2026):
 
 Version 4.0-b17 (Build: 28-05-2026):
 
-
   wifi-spotter script:
    1. fixed a typo with silent updater.
 
@@ -114,12 +145,12 @@ Version 4.0-b17 (Build: 28-05-2026):
 
 Version 4.0-b16 (Build: 28-05-2026):
 
-
   wifi-spotter script:
    1. rewrote some functions for selinux complaint.
    2. improved reset function for faster processing.
    3. fixed an issue were a address starts with a odd number
-         at first octet causes setting address to fail on some devices.
+
+  at first octet causes setting address to fail on some devices.
    4. fixed an issue were gid was unnecessarily getting removed.
 
   hostname-spoofer script:
@@ -132,7 +163,6 @@ Version 4.0-b16 (Build: 28-05-2026):
 
 Version 4.0-b15 (Build: 24-05-2026):
 
-
   302-parser script:
    1. fixed timeout arguments.
 
@@ -143,14 +173,12 @@ Version 4.0-b15 (Build: 24-05-2026):
 
 Version 4.0-b14 (Build: 24-05-2026):
 
-
   reporter script:
    1. fixed a typo with updater script background lanucher.
 
 
 
 Version 4.0-b13 (Build: 24-05-2026):
-
 
   hostname-spoofer script:
    1. fixed selinux permission issue on some devices.
@@ -166,7 +194,6 @@ Version 4.0-b13 (Build: 24-05-2026):
 
 
 Version 4.0-b12 (Build: 23-05-2026):
-
 
   install script:
    1. added absolutely path for fixing hostname-spoofer path issues.
@@ -184,18 +211,16 @@ Version 4.0-b12 (Build: 23-05-2026):
 
 Version 4.0-b11 (Build: 21-05-2026):
 
-
   connection-status script:
    1. fixed an issue were interface state function runs incorrectly.
-   2. fixed an issue were connect function runs incorrectly. 
+   2. fixed an issue were connect function runs incorrectly.
 
   network reset function:
-   1. fixed an issue were it fails to clear data while app exists. 
+   1. fixed an issue were it fails to clear data while app exists.
 
 
 
 Version 4.0-b10 (Build: 17-05-2026):
-
 
   wifi get status function:
    1. fixed an issue were ssid conflicts.
@@ -205,6 +230,7 @@ Version 4.0-b10 (Build: 17-05-2026):
 
   wifi reset function:
    1. rewrote for better handling.
+
 
 
 Version 4.0-b9 (Build: 17-05-2026):

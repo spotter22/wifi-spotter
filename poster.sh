@@ -31,6 +31,7 @@ _release(){
 
 		echo "setting release info ..."
 		sed -i "s|commit=.*|commit=\"${commit}\"|; s|version=.*|version=\"${version}\"|" \
+			"./releases/tmp/src/plugins/wsconfig.sh" \
 			"./releases/tmp/src/wifi-spotter.sh" \
 			"./releases/tmp/install.sh" \
 			|| { echo "Error: unexpected error while setting release info"; exit 1; }

@@ -118,13 +118,11 @@
 												"${home_dir}/plugins/reporter.sh" \
 												"${home_dir}/plugins/database-merger.sh" || exit 1
 
-											echo "merging previous database..."
-											"${home_dir}/plugins/database-merger.sh" --restore
-
 											echo "making link to wifi-spotter.sh..."
 											ln -fs "${home_dir}/wifi-spotter.sh" "${PREFIX}/bin/ws"
 
 											echo "startting wsconfig..."
+											${home_dir}/plugins/wsconfig.sh "--export-version"
 											sudo ${home_dir}/plugins/wsconfig.sh "--install-plugins"
 
 											termux-open-url "https://t.me/wspotter22"
