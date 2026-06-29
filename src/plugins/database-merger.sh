@@ -8,7 +8,11 @@
 									# below statement prevents merging
 									# from old database scheme
 									# which contains invalidated data.
-									[ "${mode}" = "merge" ] && [ "$(grep -Fcm1 "\"xclients\"" "${1}")" -ge 1 ] || return 1
+									if [ "${mode}" = "restore" ]; then
+										true
+									else
+										[ "$(grep -Fcm1 "\"xclients\"" "${1}")" -ge 1 ] || return 1
+									fi
 									index[0]=$(jq '.ws.bssid[].clients | length' "${1}" | jq -s add)
 									index[1]=$(jq '.ws.bssid | length' "${1}" | jq -s add)
 									index[2]=$(jq '.ws.psk | length' "${1}" | jq -s add)

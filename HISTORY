@@ -1,5 +1,12 @@
 
 
+Version 4.3-b3 (Build: 29-06-2026):
+
+  database-merger script:
+   1. another attempt to fix an issue were clear db causes corruption to db.
+
+
+
 Version 4.3-b2 (Build: 29-06-2026):
 
   poster script:
