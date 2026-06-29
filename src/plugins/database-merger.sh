@@ -8,7 +8,7 @@
 									# below statement prevents merging
 									# from old database scheme
 									# which contains invalidated data.
-									[ "$(grep -Fcm1 "\"xclients\"" "${1}")" -ge 1 ] || return 1
+									[ "${mode}" = "merge" ] && [ "$(grep -Fcm1 "\"xclients\"" "${1}")" -ge 1 ] || return 1
 									index[0]=$(jq '.ws.bssid[].clients | length' "${1}" | jq -s add)
 									index[1]=$(jq '.ws.bssid | length' "${1}" | jq -s add)
 									index[2]=$(jq '.ws.psk | length' "${1}" | jq -s add)
@@ -25,7 +25,7 @@ _db_clear(){
 
 	#echo "clearing database from previous clients..."
 	echo "clearing database from invalidated data..."
-	jq 'del(.ws.bssid.[].["tclients","admins"]) | jq del(.ws.["gid","psk"])' "${output}" >"${tmp}" && \
+	jq 'del(.ws.bssid.[].["tclients","admins"].[]) | jq del(.ws.["gid","psk"].[])' "${output}" >"${tmp}" && \
 		mv "${tmp}" "${output}"
 	return 0
 
@@ -74,6 +74,7 @@ _db_merge(){
 	if [ "${mode}" = "restore" ]; then
 		pd[0]="/sdcard/Android/media/com.wifi.spotter/"
 		pd[1]="/data/data/com.termux/files/home/com.wifi.spotter/"
+		pd[2]="${home_dir}/logs/"
 		if [ -s "/sdcard/Android/media/com.network.spotter/nspotterdb.json" ]; then
 		echo -n>"${home_dir}/logs/nspotter_restored.log"
 		pd[2]="/sdcard/Android/media/com.network.spotter/"
@@ -155,6 +156,9 @@ EOF
 		echo "Nothing was ${mode} !"
 		exit 0
 	elif _validate_db "${output}"; then
+		if [ "${mode}" = "restore" ]; then
+			_db_clear
+		fi
 		echo "Updated entries: [Clients](${index[0]}) [BSSID](${index[1]}) [PSK](${index[2]}) [GID](${index[3]})"
 		mv "${output}" "${db}"
 		echo "${mode} completed !"

@@ -1202,7 +1202,7 @@
 																{
 																	if [ -s "${home_dir}/logs/_init_new_ws.log" ]; then
 																			# setting ws_disconnect_alt to 1 will not work properly on some devices
-																		if (["${ws_disconnect_alt}" = "1" ] || \
+																		if ([ "${ws_disconnect_alt}" = "1" ] || \
 																			[ -z "${ws_disconnect_alt}" ] || \
 																			[ -z "${ws_interface_allows}" ] || \
 																			[ -z "${ws_macchanger_alt}" ]); then

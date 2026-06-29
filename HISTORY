@@ -1,5 +1,18 @@
 
 
+Version 4.3-b2 (Build: 29-06-2026):
+
+  poster script:
+   1. fixed issue with history parser..
+
+  database-merger script:
+   1. fixed an issue were clear db causes corruption to db.
+
+  install script:
+   1. added restore database for fixing previous release issue.
+
+
+
 Version 4.3-b1 (Build: 29-06-2026):
 
   connection-status script:

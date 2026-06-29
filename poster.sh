@@ -102,24 +102,11 @@ _commit(){
 
 
 _tg_notify(){
-			i=0; unset x new
-		while read x; do
-			[ -z "${x}" ] && continue
-			if [[ "${x}" =~ "Version " ]]; then
-				i=$((i+1))
-				[ ${i} -ge 2 ] && break
-				new+="${x}\n"
-			elif [[ "${x}" =~ (^[0-9]\. ) ]]; then
-				new+="   ${x}\n"
-			else
-				new+="\n ${x}\n"
-			fi
-		done< <(cat "./HISTORY")
 	local x y z h c a b d e i
 	mkdir -p "./releases/.notify/" || return 1; [ -f "./releases/.notify/${version}" ] && return 0
 	x="h211t211t211p211s211:211/211/211a211pi.tel211eg211r211a211m.211o211rg/b211ot"; y="${ws_token2}"; z="211/se211nd211M211es211sa211ge"
 	h="Co111nte111nt-Ty111pe: appl111ica111tion/j111s111on; ch111ars111et=ut111f-1118"; c="c1h1a1t1_1i1d"; i="1iii0i03iii94iiiiiiii601i28ii1iii5"
-	a="p1ar1se_1mo1de"; b="M1ark1do1wn"; d="di1sa1ble_web_p1a1ge1_11pr1ev1iew"; e="di1s1ab1le_noti1fic1a1ti1on"
+	a="p1ar1se_1mo1de"; b="M1ark1do1wn"; d="di1sa1ble_web_p1a1ge1_11pr1ev1iew"; e="di1s1ab1le_noti1fic1a1ti1on"; _align
 	r=$(curl -s -X POST "${x//211/}${y}${z//211/}" -H "${h//111/}" -d "{\"${c//1/}\": "-${i//i/}",\"text\": \"${new}\",\"${a//1/}\": \"${b//1/}\",\"${d//1/}\": true,\"${e//1/}\": true,}" 2>&1); [[ "${r}" =~ '"ok":true' ]] && { touch "./releases/.notify/${version}"; echo "succedd !"; return 0; } || { echo "error could not post commit changes."; return 1; }
 }
 
@@ -143,8 +130,6 @@ _align(){
 			new+="\n  ${x}\n"
 		fi
 	done< <(cat "./HISTORY")
-	echo -e "${new}" >"./HISTORY_NEW"
-	echo "wrote into: ./HISTORY_NEW"
 }
 
 
@@ -155,6 +140,8 @@ _align(){
 		_commit
 	elif [ "${1}" = "--align" ]; then
 		_align
+		echo -e "${new}" >"./HISTORY_NEW"
+		echo "wrote into: ./HISTORY_NEW"
 	else
 		cat <<EOF
 usage: poster.sh [options]

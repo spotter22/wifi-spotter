@@ -121,6 +121,9 @@
 											echo "making link to wifi-spotter.sh..."
 											ln -fs "${home_dir}/wifi-spotter.sh" "${PREFIX}/bin/ws"
 
+											echo "restoring previous databases..."
+											"${home_dir}/plugins/database-merger.sh" --restore
+
 											echo "startting wsconfig..."
 											${home_dir}/plugins/wsconfig.sh "--export-version"
 											sudo ${home_dir}/plugins/wsconfig.sh "--install-plugins"
