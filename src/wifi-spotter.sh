@@ -307,7 +307,7 @@
 												local db_struct db_file db_filename home_dir log_file hum_date bot_date option help scan_option monitor_option args connect_option version commit confirm_update
 												db_struct='{"ws":{"bssid":{},"gid":{}}}'
 												home_dir=~/wifi-spotter-root
-												db_filename="wsdb_43"
+												db_filename="wsdb_44"
 												db_file="${home_dir}/${db_filename}.json"
 												log_file="${home_dir}/logs/ws.log"
 												full_date=($(date "+%s %d%m%y date: %d-%m-%Y time: %H:%M:%S"))
@@ -349,13 +349,18 @@
 												source "${home_dir}/.wsprofile"
 
 												# database rollback
-											if ([ -n ${ws_ver} ] && [ ${ws_ver} -ge 43 ] && [ ! -s "${home_dir}/wsdb_43.json" ]); then
-												if [ -s "${home_dir}/wsdb.json" ]; then
-													# starting from v4.3-b1 db renamed from wsdb into wsdb_43
-													# db must be cleared once since it's may contain invalide data inserted by old versions.
-													cp "${home_dir}/wsdb.json" "${home_dir}/wsdb_43.json"
-													"${home_dir}/plugins/database-merger.sh" --clear || { echo "Error: clear db failed !"; rm -f "${home_dir}/wsdb_43.json"; exit 1; }
-												fi
+											if [ "${wsdb_scheme}" != "44" ]; then
+												# starting from v4.3-b1 db renamed from wsdb into wsdb_43
+												# db must be cleared once since it's may contain invalide data inserted by old versions.
+												# yet again with v4.4-b1 db renamed again to fix issues caused by previous versions.
+												mv "${home_dir}/wsdb.json" "${home_dir}/logs/wsdb_$(date +%s).log"
+												mv "${home_dir}/wsdb_43.json" "${home_dir}/logs/wsdb_$(date +%s).log"
+												for x in ${PREFIX}/tmp/*; do
+													cp "${x}" "${home_dir}/logs/wsdb_$(date +%s).log"
+												done
+												"${home_dir}/plugins/database-merger.sh" --restore || { echo "Error: restore db failed !"; rm -f "${home_dir}/wsdb_44.json"; exit 1; }
+												"${home_dir}/plugins/database-merger.sh" --clear || { echo "Error: clear db failed !"; rm -f "${home_dir}/wsdb_44.json"; exit 1; }
+												echo "wsdb_scheme=\"44\"" >>"${home_dir}/.wsprofile"
 											fi
 
 											if [ "$(id -u)" = "0" ]; then

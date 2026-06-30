@@ -8,9 +8,7 @@
 									# below statement prevents merging
 									# from old database scheme
 									# which contains invalidated data.
-									if [ "${mode}" = "restore" ]; then
-										true
-									else
+									if [ "${mode}" = "merge" ]; then
 										[ "$(grep -Fcm1 "\"xclients\"" "${1}")" -ge 1 ] || return 1
 									fi
 									index[0]=$(jq '.ws.bssid[].clients | length' "${1}" | jq -s add)
@@ -29,8 +27,8 @@ _db_clear(){
 
 	#echo "clearing database from previous clients..."
 	echo "clearing database from invalidated data..."
-	jq 'del(.ws.bssid.[].["tclients","admins"].[]) | jq del(.ws.["gid","psk"].[])' "${output}" >"${tmp}" && \
-		mv "${tmp}" "${output}"
+	jq 'del(.ws.bssid.[].["tclients","admins"]) | del(.ws.["gid","psk"]) | .ws +={"gid":{}}' "${output}" >"${tmp}" && \
+		mv "${tmp}" "${output}" && i=$((i+1))
 	return 0
 
 	echo "clearing database from incorrect entries..."
@@ -105,7 +103,7 @@ _db_merge(){
 }
 
 		home_dir=~/wifi-spotter-root
-		db="${home_dir}/wsdb_43.json"
+		db="${home_dir}/wsdb_44.json"
 	if [ "${1}" = "--merge" ]; then
 		mode="merge"
 	elif [ "${1}" = "--restore" ]; then
@@ -160,9 +158,6 @@ EOF
 		echo "Nothing was ${mode} !"
 		exit 0
 	elif _validate_db "${output}"; then
-		if [ "${mode}" = "restore" ]; then
-			_db_clear
-		fi
 		echo "Updated entries: [Clients](${index[0]}) [BSSID](${index[1]}) [PSK](${index[2]}) [GID](${index[3]})"
 		mv "${output}" "${db}"
 		echo "${mode} completed !"

@@ -1,5 +1,11 @@
 
 
+Version 4.4-b1 (Build: 29-06-2026):
+
+  wifi-spotter script:
+   1. yet another attempt to fix an issue were clear db causes corruption to db.
+
+
 Version 4.3-b3 (Build: 29-06-2026):
 
   database-merger script:
